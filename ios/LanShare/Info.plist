@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Array values cannot be expressed with INFOPLIST_KEY_* build settings,
+	     so they live here and Xcode merges them into the generated plist. -->
+	<!-- Export compliance: all encryption is standard-algorithm and exempt
+	     (Apple CryptoKit / URLSession TLS, plus WebRTC's bundled IETF-standard
+	     DTLS), so App Store Connect skips the per-upload export question. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_lanshare._tcp</string>
+	</array>
+</dict>
+</plist>

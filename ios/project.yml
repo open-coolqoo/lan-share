@@ -1,0 +1,59 @@
+name: LanShare
+options:
+  bundleIdPrefix: com.lanshare
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+packages:
+  WebRTC:
+    url: https://github.com/stasel/WebRTC
+    exactVersion: 152.0.0
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_APPROACHABLE_CONCURRENCY: YES
+    SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
+    MARKETING_VERSION: "0.3.8"
+    CURRENT_PROJECT_VERSION: 8
+targets:
+  LanShare:
+    type: application
+    platform: iOS
+    sources:
+      - path: LanShare
+    dependencies:
+      - package: WebRTC
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lanshare
+        PRODUCT_NAME: LanShare
+        GENERATE_INFOPLIST_FILE: YES
+        # iPhone + iPad: family 1 alone renders iPad as a stretched 375×667
+        # compatibility window (blurry top bar pinned to both edges). iPad
+        # native instead reuses the regular-width AdaptiveLayout caps. Store
+        # note: iPad screenshots become a submission requirement.
+        TARGETED_DEVICE_FAMILY: "1,2"
+        INFOPLIST_KEY_CFBundleDisplayName: Lan-Share
+        INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.utilities"
+        INFOPLIST_KEY_NSCameraUsageDescription: "Lan-Share uses the camera to scan pairing QR codes."
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: "Lan-Share uses the local network to find and transfer files with your other devices."
+        INFOPLIST_FILE: LanShare/Info.plist
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: NO
+        INFOPLIST_KEY_UILaunchStoryboardName: LaunchScreen
+        # Deliberately unset: UIRequiresFullScreen would keep the app out of
+        # the iPhone Duo's split/multi-window form factors and hold it at the
+        # outer screen's size when the phone unfolds. The layout adapts by
+        # width instead (see AdaptiveLayout).
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        SUPPORTS_MACCATALYST: NO
+schemes:
+  LanShare:
+    build:
+      targets:
+        LanShare: all
+    run:
+      config: Debug

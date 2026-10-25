@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Resolves the stored theme mode (lanshare.theme) before any style loads so
+      // the page never paints light first and flips dark. Mirrors src/app/theme.ts.
+      (function () {
+        try {
+          var mode = localStorage.getItem('lanshare.theme')
+          var dark = mode === 'dark' || (mode !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+        } catch (error) {
+          document.documentElement.dataset.theme = 'light'
+        }
+      })()
+    </script>
+    <title>Lan-Share - Free file transfer between any devices</title>
+    <meta
+      name="description"
+      content="Free browser file transfer for phone to phone, computer to computer, and phone to computer. Pair with an 8-digit code or QR code—no app install."
+    />
+    <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#0f6b55" />
+    <link rel="icon" type="image/svg+xml" href="/assets/lanshare-icon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="canonical" href="https://lan-share.com/" />
+    <meta property="og:title" content="Lan-Share - Free file transfer between any devices" />
+    <meta property="og:description" content="Free browser file transfer for phone to phone, PC to PC, and phone to PC. Pair with code or QR—no app." />
+    <meta property="og:site_name" content="Lan-Share" />
+    <meta property="og:url" content="https://lan-share.com/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://lan-share.com/assets/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Lan-Share - Free file transfer between any devices" />
+    <meta name="twitter:description" content="Free browser file transfer for phone to phone, PC to PC, and phone to PC. Pair with code or QR—no app." />
+    <meta name="twitter:image" content="https://lan-share.com/assets/og.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Lan-Share",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Web",
+        "description": "Free browser file transfer for phone to phone, computer to computer, and phone to computer. Pair with an 8-digit code or QR code—no app install.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root">
+      <noscript>
+        <p>Lan-Share transfers files directly between devices on your local network. Enable JavaScript to create or join a room.</p>
+      </noscript>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

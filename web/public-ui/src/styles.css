@@ -1,0 +1,2036 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  --bg: #f5f7f4;
+  --text: var(--text);
+  --text-faint: var(--text-faint);
+  --text-body: #2a332f;
+  --label-strong: #46536b;
+  --line: #dce5df;
+  --line-soft: var(--line-soft);
+  --muted: #637269;
+  --green: #0f6b55;
+  --green-strong: #0b513f;
+  --green-text: #0f6b55;
+  --green-wash: #f0faf5;
+  --green-line: #9dc3b3;
+  --green-ink: #12352b;
+  --green-outline: #2f7d65;
+  --surface: #ffffff;
+  --surface-alt: #eef5f1;
+  --surface-dim: #f4f6f5;
+  --red: #b42318;
+  --red-text: #b42318;
+  --red-line: #eecfcd;
+  --red-line-hover: #e0b3b0;
+  --red-soft: #fdf7f6;
+  --red-soft-hover: #fbeeed;
+  --amber: #9a6700;
+  --amber-line: #e3b341;
+  --scrim: var(--scrim);
+  --wash: rgba(0, 0, 0, 0.06);
+  --topbar-bg: rgba(255, 255, 255, 0.9);
+  --shadow-tint: 12, 20, 16;
+  --bubble-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --track: #e6e6e6;
+  --chat-stream: #f2f2f2;
+  --titlebar-bg: #f7f7f7;
+  --titlebar-line: #ebebeb;
+  --bubble-out: #95ec69;
+  --bubble-out-file: #ddf5cd;
+  --empty-card: rgba(255, 255, 255, 0.65);
+  --input-bg: #f5f5f5;
+  --handle: #c2cdc6;
+  --icon-muted: #4a554e;
+  --accent-soft: rgba(15, 107, 85, 0.12);
+  --ease-fluid: cubic-bezier(0.4, 0, 0.2, 1);
+  --layout-transition: grid-template-columns 320ms var(--ease-fluid), grid-template-rows 320ms var(--ease-fluid), gap 260ms var(--ease-fluid), padding 260ms var(--ease-fluid), margin 260ms var(--ease-fluid), min-height 320ms var(--ease-fluid), width 320ms var(--ease-fluid), border-radius 260ms var(--ease-fluid), transform 260ms var(--ease-fluid), opacity 180ms ease;
+}
+
+/* The theme toggle writes data-theme="light|dark" on the root element; "auto"
+   resolves in JS to whichever the OS prefers and re-resolves on change. Only
+   the two resolved states exist in CSS. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  color: var(--text);
+  background: var(--bg);
+  --bg: #101713;
+  --text: #e6eee8;
+  --text-faint: #8a9a91;
+  --text-body: #d7e2da;
+  --label-strong: #9fb2cf;
+  --line: #2c3a34;
+  --line-soft: rgba(214, 232, 222, 0.14);
+  --muted: #9fb0a6;
+  --green: #1f8a6b;
+  --green-strong: #4ec79b;
+  --green-text: #4fc79d;
+  --green-wash: #1d2f27;
+  --green-line: #3c6a55;
+  --green-ink: #c5e6d6;
+  --green-outline: #45b391;
+  --surface: #17211c;
+  --surface-alt: #202e27;
+  --surface-dim: #1b2620;
+  --red: #cf3a2c;
+  --red-text: #ff9c91;
+  --red-line: #5f2b24;
+  --red-line-hover: #753830;
+  --red-soft: #331712;
+  --red-soft-hover: #401c16;
+  --amber: #e2b53e;
+  --amber-line: #c79b39;
+  --scrim: rgba(0, 0, 0, 0.62);
+  --wash: rgba(255, 255, 255, 0.08);
+  --topbar-bg: rgba(16, 23, 19, 0.86);
+  --shadow-tint: 0, 0, 0;
+  --bubble-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --track: #29362f;
+  --chat-stream: #131b17;
+  --titlebar-bg: #19241e;
+  --titlebar-line: #29362f;
+  --bubble-out: #2e7c50;
+  --bubble-out-file: #2c4a3a;
+  --empty-card: rgba(23, 33, 28, 0.65);
+  --input-bg: #1d2822;
+  --handle: #3f4e46;
+  --icon-muted: #aebfb5;
+  --accent-soft: rgba(79, 199, 157, 0.18);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+  transition: min-height 260ms var(--ease-fluid), background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.primary {
+  border-color: var(--green);
+  background: var(--green);
+  color: #fff;
+}
+
+.page {
+  min-height: 100vh;
+}
+
+/* The app page is a flex column: the layout grows to fill the viewport so the
+   footer sits at the true bottom even when the conversation is short. Public
+   pages share the .page class but keep block flow. */
+.page.is-paired,
+.page.is-unpaired {
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px clamp(18px, 3vw, 32px);
+  border-bottom: 1px solid var(--line);
+  background: var(--topbar-bg);
+  backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  transition: padding 260ms var(--ease-fluid);
+}
+
+.brand,
+.top-actions,
+.button-row,
+.join-row,
+.local-code-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand img {
+  width: 42px;
+  height: 42px;
+}
+
+.brand > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.button-link {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 0 12px;
+  color: var(--text);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.button-link.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.brand span,
+.muted,
+.device-grid span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.top-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.status-pill,
+.ttl-badge,
+.mini,
+.path-badge {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: var(--surface-alt);
+  color: var(--green-strong);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+
+.theme-toggle {
+  min-height: 36px;
+  padding: 0 8px;
+  background: var(--surface);
+  box-shadow: 0 1px 0 rgba(15, 107, 85, 0.05);
+}
+
+.copy-code-button {
+  min-width: 104px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.language-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.language-trigger {
+  min-height: 36px;
+  padding: 0 10px;
+  background: var(--surface);
+  box-shadow: 0 1px 0 rgba(15, 107, 85, 0.05);
+}
+
+.language-trigger span {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.language-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  inset-inline-end: 0;
+  z-index: 20;
+  display: grid;
+  width: 190px;
+  max-height: min(60vh, 420px);
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 18px 50px rgba(var(--shadow-tint), 0.16);
+  padding: 6px;
+}
+
+.language-popover button {
+  justify-content: space-between;
+  min-height: 36px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.language-popover button:hover,
+.language-popover button:focus-visible,
+.language-popover button.is-selected {
+  background: var(--surface-alt);
+  color: var(--green-strong);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: 16px;
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 18px;
+  transition: var(--layout-transition);
+  flex: 1 0 auto;
+}
+
+.is-unpaired .layout {
+  min-height: calc(100vh - 92px);
+  align-items: start;
+  align-content: center;
+}
+
+.is-paired .layout {
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+  align-items: stretch;
+}
+
+/* Once paired, the page is a fixed console at every width: the layout fills
+   the space between the top bar and the footer, the conversation scrolls
+   inside the stream with the composer pinned, and a tall summary/diagnostics
+   column scrolls on its own instead of stretching the page. */
+.page.is-paired {
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+}
+
+.page.is-paired .layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  align-content: stretch;
+}
+
+.page.is-paired .layout > .connection-area {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.page.is-paired .layout > .transfer-panel.chat-window {
+  min-height: 0;
+}
+
+.page.is-paired .chat-window .chat-stream.drop-zone {
+  min-height: 0;
+  max-height: none;
+}
+
+.connection-area {
+  min-width: 0;
+  transition: var(--layout-transition);
+}
+
+.homepage-intro {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+}
+
+.homepage-intro h1 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.homepage-intro p {
+  margin: 0;
+  max-width: 72ch;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.homepage-how {
+  margin-top: 16px;
+}
+
+.homepage-how h2 {
+  margin: 0 0 8px;
+  font-size: 17px;
+}
+
+.homepage-how ol {
+  margin: 0 0 10px;
+  padding-inline-start: 20px;
+  max-width: 72ch;
+}
+
+.homepage-how li {
+  margin-bottom: 6px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.homepage-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 10px 0 0 !important;
+}
+
+.homepage-links a {
+  font-weight: 600;
+}
+
+.connection-cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1.18fr) minmax(0, 0.82fr);
+  gap: 16px;
+  align-items: start;
+  transition: var(--layout-transition);
+}
+
+/* The connection status lives inside the Connect card, under a divider. */
+.status-card {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.status-heading {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.status-heading h3 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.status-card .mini {
+  white-space: normal;
+}
+
+.panel {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 12px 30px rgba(var(--shadow-tint), 0.06);
+  padding: 16px;
+  transition: var(--layout-transition), box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.self-card {
+  container-type: inline-size;
+}
+
+.self-card .panel-heading {
+  min-height: 34px;
+  padding-inline-end: 140px;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1,
+h2 {
+  margin-bottom: 0;
+  font-size: 20px;
+  letter-spacing: 0;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.local-code-row {
+  align-items: stretch;
+  margin-bottom: 10px;
+}
+
+.code-display {
+  display: grid;
+  min-width: 0;
+  min-height: 82px;
+  flex: 1;
+  place-items: center;
+  border: 1px solid var(--green-line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--surface) 0%, var(--green-wash) 100%);
+  color: var(--green-ink);
+  font-size: clamp(34px, 4.6vw, 58px);
+  font-size: clamp(34px, 14cqw, 58px);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  transition: min-height 320ms var(--ease-fluid), font-size 320ms var(--ease-fluid);
+}
+
+.ttl-badge {
+  display: grid;
+  min-width: 102px;
+  place-items: center;
+  position: absolute;
+  top: -1px;
+  inset-inline-end: 18px;
+  z-index: 2;
+  min-height: 34px;
+  max-width: calc(100% - 36px);
+  border: 0;
+  border-radius: 0 0 14px 14px;
+  padding: 8px 16px 9px;
+  background: var(--green);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(15, 107, 85, 0.28);
+  font-size: 12px;
+  line-height: 1;
+  text-align: center;
+  transition: background-color 180ms ease, box-shadow 180ms ease;
+}
+
+.ttl-badge.is-urgent {
+  background: var(--red);
+  box-shadow: 0 8px 18px rgba(180, 35, 24, 0.3);
+}
+
+.button-row {
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.pairing-qr {
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-alt);
+  padding: 10px;
+}
+
+.pairing-qr-code {
+  display: grid;
+  width: 116px;
+  height: 116px;
+  place-items: center;
+  border: 1px solid var(--green-line);
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.pairing-qr-code img {
+  display: block;
+  width: 108px;
+  height: 108px;
+}
+
+.pairing-qr strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.peer-card {
+  order: 0;
+  transition: var(--layout-transition);
+}
+
+.join-row {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.join-row > button {
+  width: 100%;
+}
+
+.connect-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.spin-icon {
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.join-row input {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  transition: min-height 260ms var(--ease-fluid), font-size 260ms var(--ease-fluid), padding 260ms var(--ease-fluid);
+}
+
+.device-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.device-grid div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--surface-alt);
+}
+
+.device-grid strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.steps {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.step.checking,
+.step.pairing {
+  border-color: var(--amber-line);
+  color: var(--amber);
+}
+
+.step.passed,
+.step.done,
+.step.success {
+  border-color: var(--green-line);
+  color: var(--green-text);
+}
+
+.step.failed,
+.error-banner {
+  border-color: var(--red-line);
+  color: var(--red-text);
+}
+
+.error-banner {
+  margin-top: 12px;
+  border: 1px solid;
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--red-soft);
+}
+
+/* Paired sidebar: a slim WeChat-style "conversation info" card. The smoke
+   contract needs .summary-card with Local/Peer device names and Disconnect. */
+.summary-card {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.summary-card button {
+  width: 100%;
+}
+
+.summary-code {
+  display: grid;
+  place-items: center;
+  margin-top: 2px;
+  border-radius: 10px;
+  padding: 12px;
+  background: linear-gradient(180deg, var(--green-wash) 0%, var(--surface-alt) 100%);
+  color: var(--green-strong);
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.14em;
+}
+
+.summary-card .muted {
+  margin: 10px 0 0;
+}
+
+.paired-devices {
+  margin-top: 14px;
+}
+
+.paired-devices div {
+  display: grid;
+  gap: 3px;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--surface-dim);
+}
+
+.paired-devices strong {
+  font-size: 14px;
+}
+
+.disconnect-button {
+  border-color: var(--red-line);
+  background: var(--red-soft);
+  color: var(--red-text);
+}
+
+.disconnect-button:hover:not(:disabled) {
+  border-color: var(--red-line-hover);
+  background: var(--red-soft-hover);
+}
+
+.transfer-panel {
+  grid-column: 1;
+  grid-row: 1;
+  transition: var(--layout-transition);
+}
+
+.is-paired .layout > .connection-area {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.is-paired .layout > .transfer-panel {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.drop-zone {
+  display: grid;
+  min-height: 190px;
+  place-items: center;
+  gap: 8px;
+  border: 1px dashed var(--green-line);
+  border-radius: 8px;
+  background: var(--green-wash);
+  color: var(--green-text);
+  cursor: pointer;
+  text-align: center;
+  transition: min-height 320ms var(--ease-fluid);
+}
+
+.drop-zone input {
+  display: none;
+}
+
+.drop-zone.is-disabled,
+.file-picker-button.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+
+
+.file-picker-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 1px solid var(--green-line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--green-ink);
+  font-weight: 800;
+  cursor: pointer;
+  user-select: none;
+}
+
+.file-picker-button:focus-within {
+  outline: 2px solid var(--green-outline);
+  outline-offset: 2px;
+}
+
+/* File messages read as chat bubbles: type badge, ellipsizable name, and a
+   size · status meta line, with the actions as quiet icons on the right. */
+.file-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--surface);
+  box-shadow: var(--bubble-shadow);
+}
+
+/* Sender side has to stay obvious at any width: own file bubbles are tinted
+   green and point right, the peer's stay white and point left. */
+.file-list.is-outgoing .file-card {
+  background: var(--bubble-out-file);
+}
+
+.file-list.is-incoming .file-card,
+.file-list.is-outgoing .file-card {
+  position: relative;
+}
+
+.file-list.is-incoming .file-card::after,
+.file-list.is-outgoing .file-card::after {
+  content: '';
+  position: absolute;
+  top: 18px;
+  width: 8px;
+  height: 8px;
+  background: inherit;
+  transform: rotate(45deg);
+}
+
+.file-list.is-incoming .file-card::after {
+  inset-inline-start: -3px;
+}
+
+.file-list.is-outgoing .file-card::after {
+  inset-inline-end: -3px;
+}
+
+.file-type-badge {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 6px;
+  background: #64748b;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.file-type-badge.is-image { background: #7c6ff0; }
+.file-type-badge.is-video { background: #ef7d33; }
+.file-type-badge.is-audio { background: #14a08a; }
+.file-type-badge.is-pdf { background: #e5484d; }
+.file-type-badge.is-doc { background: #2f7de1; }
+.file-type-badge.is-sheet { background: #2aa05a; }
+.file-type-badge.is-slide { background: #e8842c; }
+.file-type-badge.is-archive { background: #a08430; }
+.file-type-badge.is-apk { background: #3ddc84; color: #14381f; }
+.file-type-badge.is-text { background: #78909c; }
+
+.file-body {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+}
+
+.file-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.file-meta {
+  color: var(--text-faint);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.file-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.file-list-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-list-heading {
+  min-width: 0;
+  justify-content: space-between;
+  color: var(--text);
+}
+
+.file-list-heading:focus-visible {
+  outline: 2px solid var(--green-text);
+  outline-offset: 4px;
+}
+
+.file-list-heading-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.file-list-heading span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.file-row-action {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--green-strong);
+}
+
+.file-row-action:hover:not(:disabled) {
+  background: var(--surface-alt);
+}
+
+.file-row-action:focus-visible {
+  outline: 2px solid var(--green-text);
+  outline-offset: 2px;
+}
+
+/* WeChat-style conversation window: flat titlebar, gray stream, white/green
+   bubbles, and a bottom composer. The panel chrome stays for the contract. */
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.chat-titlebar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 54px;
+  padding: 10px 128px;
+  border-bottom: 1px solid var(--titlebar-line);
+  background: var(--titlebar-bg);
+}
+
+.chat-peer-name {
+  max-width: 100%;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+.chat-titlebar .path-badge {
+  position: absolute;
+  top: 50%;
+  inset-inline-end: 14px;
+  transform: translateY(-50%);
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  font-weight: 700;
+}
+
+/* Mobile-only affordance in the chat titlebar: opens the connection details
+   sheet with the paired code and diagnostics. Chrome mirrors the top bar's
+   right-side buttons (bordered white pill, icon plus label). */
+.chat-details-trigger {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.chat-details-trigger:active {
+  color: var(--green-text);
+  border-color: var(--green);
+}
+
+/* Bulk transfer actions live in the header now that file bubbles are individual
+   messages; they appear only while there is something to act on. */
+/* The stream doubles as the drop target: it keeps the .drop-zone class for
+   drag-and-drop wiring but reads as a flat WeChat conversation background. */
+.chat-stream.drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  /* Absorb the height the paired row gives the chat window so the composer
+     stays pinned to the bottom and long conversations scroll inside. */
+  flex: 1 1 auto;
+  /* The drop hint overlays the stream. */
+  position: relative;
+  gap: 14px;
+  min-height: 300px;
+  max-height: min(62vh, 620px);
+  overflow-y: auto;
+  padding: 18px 16px;
+  border: 0;
+  border-radius: 0;
+  background: var(--chat-stream);
+  color: inherit;
+  cursor: default;
+  text-align: start;
+}
+
+.chat-stream.drop-zone.is-drag-over {
+  outline: 2px dashed var(--green-text);
+  outline-offset: -8px;
+  background: var(--green-wash);
+}
+
+.chat-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: auto;
+  padding: 8px 14px;
+  border-radius: 6px;
+  background: var(--wash);
+  color: var(--text-faint);
+  font-size: 12px;
+  text-align: center;
+}
+
+.chat-empty-hint {
+  color: var(--text-faint);
+}
+
+/* Drop feedback: say what happens the moment the file lands. */
+.chat-drop-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: rgba(7, 193, 96, 0.92);
+  color: #fff;
+  font-size: 13px;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+/* "You recalled a message" / "The peer recalled a message" marker. */
+.chat-system {
+  margin: 0 auto;
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: var(--wash);
+  color: var(--text-faint);
+  font-size: 12px;
+  text-align: center;
+}
+
+.message-thread {
+  display: grid;
+  gap: 14px;
+}
+
+.message-bubble {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: 78%;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--bubble-shadow);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* Bubble tails point at the sender's side, like WeChat. */
+.message-bubble::before {
+  content: '';
+  position: absolute;
+  top: 13px;
+  width: 8px;
+  height: 8px;
+  background: inherit;
+  box-shadow: inherit;
+  transform: rotate(45deg);
+}
+
+.message-bubble.is-incoming {
+  justify-self: start;
+  margin-inline-start: 8px;
+}
+
+.message-bubble.is-incoming::before {
+  inset-inline-start: -3px;
+}
+
+.message-bubble.is-outgoing {
+  justify-self: end;
+  margin-inline-end: 8px;
+  background: var(--bubble-out);
+}
+
+.message-bubble.is-outgoing::before {
+  inset-inline-end: -3px;
+}
+
+.message-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.message-copy {
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  flex-shrink: 0;
+  opacity: 0.35;
+  transition: opacity 160ms ease, background-color 160ms ease;
+}
+
+.message-bubble:hover .message-copy,
+.message-copy:focus-visible {
+  opacity: 1;
+}
+
+.message-copy:hover:not(:disabled) {
+  background: var(--wash);
+}
+
+.message-copy:focus-visible {
+  outline: 2px solid var(--green-text);
+  outline-offset: 2px;
+}
+
+.message-recall {
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  flex-shrink: 0;
+  opacity: 0.35;
+  transition: opacity 160ms ease, background-color 160ms ease;
+}
+
+.message-bubble:hover .message-recall,
+.message-recall:focus-visible {
+  opacity: 1;
+}
+
+.message-recall:hover:not(:disabled) {
+  background: var(--wash);
+}
+
+.message-recall:focus-visible {
+  outline: 2px solid var(--green-text);
+  outline-offset: 2px;
+}
+
+/* File offers travel through the same stream as bubble messages, aligned by
+   sender. WeChat keeps file cards white on both sides; alignment carries the
+   direction, and the group heading stays as a slim section marker. */
+.chat-timeline {
+  display: grid;
+  gap: 14px;
+  /* Anchor a short conversation to the bottom, like WeChat, so the newest entry
+     always sits next to the composer. */
+  margin-top: auto;
+}
+
+/* Each entry is a WeChat-style row: avatar on the outer side, bubble beside it. */
+.chat-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.chat-row.is-outgoing {
+  flex-direction: row-reverse;
+}
+
+.chat-avatar {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.chat-avatar.is-local {
+  background: var(--green);
+}
+
+.chat-avatar.is-peer {
+  background: #4f7a91;
+}
+
+.chat-entry {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  max-width: min(78%, 520px);
+}
+
+.chat-sender {
+  color: var(--text-faint);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+/* Bubbles used to align themselves inside the stream; the row does that now. */
+.chat-entry .message-bubble {
+  max-width: 100%;
+  margin-inline-start: 0;
+  margin-inline-end: 0;
+}
+
+.file-list.is-incoming,
+.file-list.is-outgoing {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  margin-top: 0;
+}
+
+.file-list .file-list-heading {
+  padding: 0 2px;
+}
+
+.file-list .file-list-heading strong {
+  color: var(--text-faint);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chat-composer {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--titlebar-line);
+  background: var(--surface);
+}
+
+/* The emoji palette floats above the composer (WeChat-style) instead of
+   growing the chat window and shoving the message list around. */
+.chat-composer .emoji-picker {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 100%;
+  z-index: 3;
+  border-top: 0;
+  box-shadow: 0 -8px 18px rgba(0, 0, 0, 0.1);
+}
+
+.chat-composer-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chat-composer-tools {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+}
+
+.chat-tool-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--icon-muted);
+}
+
+.chat-tool-button:hover:not(.is-disabled),
+.chat-tool-button[aria-expanded='true'] {
+  background: var(--wash);
+  color: var(--green-strong);
+}
+
+.chat-tool-button:focus-within {
+  outline: 2px solid var(--green-text);
+  outline-offset: 2px;
+}
+
+.chat-tool-button input {
+  display: none;
+}
+
+.emoji-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
+  gap: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 10px;
+  border-top: 1px solid var(--titlebar-line);
+  background: var(--surface);
+  box-shadow: inset 0 8px 12px -12px rgba(0, 0, 0, 0.18);
+}
+
+.emoji-option {
+  min-height: 40px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.emoji-option:hover:not(:disabled) {
+  background: var(--surface-alt);
+}
+
+.message-input-row {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  min-width: 0;
+}
+
+.message-input-row input {
+  min-width: 0;
+  min-height: 40px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--input-bg);
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.message-input-row input:focus {
+  outline: none;
+  border-color: var(--green);
+  background: var(--surface);
+}
+
+.message-input-row button {
+  white-space: nowrap;
+}
+
+.chat-note {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+/* Says what happened to a folder that was empty or larger than the cap. */
+.chat-folder-notice {
+  margin: 0;
+  color: var(--amber);
+  font-size: 11px;
+}
+
+.file-cancel-button {
+  color: var(--red-text);
+}
+
+.file-cancel-button:hover:not(:disabled) {
+  background: rgba(180, 35, 24, 0.08);
+}
+
+.file-progress {
+  overflow: hidden;
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--track);
+}
+
+.file-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--green);
+  transition: width 180ms ease;
+}
+
+.empty-file-card {
+  background: var(--empty-card);
+  box-shadow: none;
+  padding: 12px 14px;
+}
+
+.empty-file-content {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+}
+
+.empty-file-content strong {
+  font-size: 13px;
+}
+
+.file-delete-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: var(--scrim);
+}
+
+.file-delete-dialog {
+  width: min(100%, 420px);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 24px 72px rgba(var(--shadow-tint), 0.24);
+  padding: 20px;
+}
+
+.file-delete-dialog h3,
+.file-delete-dialog p {
+  margin: 0;
+}
+
+.file-delete-dialog p {
+  margin-top: 10px;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.file-delete-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.file-delete-actions button {
+  padding: 0 14px;
+}
+
+.file-delete-confirm {
+  border-color: var(--red);
+  background: var(--red);
+  color: #fff;
+}
+
+.progress {
+  overflow: hidden;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--track);
+}
+
+.progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--green);
+  transition: width 180ms ease;
+}
+
+.diagnostics {
+  align-self: start;
+}
+
+/* When paired, the panel lives under the paired-code card in the right column. */
+.connection-area .diagnostics {
+  margin-top: 16px;
+}
+
+.diagnostics dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.diagnostics dl > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-alt);
+  padding: 10px;
+}
+
+.diagnostics dt {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.diagnostics dd {
+  margin: 0;
+  text-align: end;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.site-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  border-top: 1px solid var(--line);
+  padding: 22px clamp(18px, 3vw, 32px);
+  color: var(--muted);
+  background: var(--surface);
+  transition: padding 260ms var(--ease-fluid);
+}
+
+.site-footer > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.site-footer p {
+  margin: 0;
+}
+
+.site-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.site-footer a {
+  color: var(--green-text);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: var(--scrim);
+}
+
+.direct-failure-modal {
+  width: min(100%, 520px);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 24px 60px rgba(var(--shadow-tint), 0.24);
+  padding: 18px;
+}
+
+.direct-failure-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.direct-failure-heading div {
+  min-width: 0;
+}
+
+.direct-failure-close {
+  width: 34px;
+  min-height: 34px;
+  padding: 0;
+  flex: 0 0 auto;
+}
+
+.direct-failure-modal h2 {
+  margin-bottom: 12px;
+}
+
+.direct-failure-modal ul {
+  margin: 12px 0;
+  padding-inline-start: 20px;
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+@keyframes details-sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes details-scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (min-width: 861px) {
+  /* The details sheet only exists on small screens; a sheet left open when the
+     window grows must never surface a stray scrim over the desktop layout. */
+  .sheet-scrim {
+    display: none;
+  }
+}
+
+@media (min-width: 1080px) {
+  .brand {
+    min-width: 0;
+  }
+
+  .brand > div {
+    min-width: 0;
+    max-width: min(38vw, 560px);
+  }
+
+  .top-actions {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+  }
+
+  .is-unpaired .layout {
+    max-width: min(100vw - 64px, 1560px);
+    min-height: calc(100vh - 94px);
+    padding: 32px;
+  }
+
+  .is-unpaired .connection-cards {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: 24px;
+    width: 100%;
+  }
+
+  .is-unpaired .panel {
+    padding: 24px;
+  }
+
+  .is-unpaired .self-card,
+  .is-unpaired .peer-card {
+    min-height: clamp(300px, 42vh, 430px);
+  }
+
+  .is-unpaired .status-card {
+    min-height: clamp(220px, 28vh, 320px);
+  }
+
+  .is-unpaired .code-display {
+    min-height: clamp(140px, 22vh, 220px);
+    font-size: clamp(34px, 5vw, 92px);
+    font-size: clamp(34px, 14cqw, 92px);
+  }
+
+  .is-unpaired .join-row input {
+    min-height: 58px;
+    font-size: 24px;
+  }
+
+  .is-unpaired button {
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 860px) {
+  .layout,
+  .connection-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .is-unpaired .layout {
+    align-items: start;
+  }
+
+  .peer-card {
+    order: -2;
+  }
+
+  .self-card {
+    order: -1;
+  }
+
+  .status-card {
+    grid-column: auto;
+  }
+
+  .is-paired .layout > .connection-area,
+  .is-paired .layout > .transfer-panel,
+  .summary-card {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .is-paired .layout {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .is-paired .layout > .connection-area,
+  .is-paired .layout > .transfer-panel {
+    width: 100%;
+  }
+
+  /* Once paired, the chat is the whole job and fills the console; the paired
+     code and diagnostics live one tap away in the details sheet, the way the
+     mobile apps present them. */
+  .is-paired .layout > .transfer-panel.chat-window {
+    order: 1;
+    flex: 1 1 auto;
+  }
+
+  /* The connection column leaves the page flow entirely and becomes the
+     details sheet. */
+  .is-paired .layout > .connection-area {
+    display: none;
+  }
+
+  .page.is-paired.details-open .layout > .connection-area {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 30;
+    max-height: min(82svh, 720px);
+    overflow-y: auto;
+    padding: 0 16px calc(16px + env(safe-area-inset-bottom));
+    border-radius: 18px 18px 0 0;
+    background: var(--surface-alt);
+    box-shadow: 0 -12px 48px rgba(var(--shadow-tint), 0.4);
+    animation: details-sheet-up 280ms var(--ease-fluid);
+    overscroll-behavior: contain;
+  }
+
+  .page.is-paired.details-open .layout > .connection-area::before {
+    content: '';
+    flex: 0 0 auto;
+    width: 44px;
+    height: 5px;
+    margin: 8px auto 2px;
+    border-radius: 999px;
+    background: var(--handle);
+  }
+
+  .sheet-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 29;
+    background: var(--scrim);
+    animation: details-scrim-in 200ms ease-out;
+  }
+
+  /* The titlebar reads like the page header: peer name on the left, the path
+     badge and the details button as the right-side actions. */
+  .chat-titlebar {
+    min-height: 48px;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 8px 12px;
+  }
+
+  .chat-peer-name {
+    flex: 1 1 auto;
+    text-align: start;
+  }
+
+  .chat-titlebar .path-badge {
+    position: static;
+    transform: none;
+  }
+
+  .chat-details-trigger {
+    display: inline-flex;
+  }
+
+  .local-code-row,
+  .join-row,
+  .summary-card,
+  .site-footer,
+  .topbar {
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 14px;
+  }
+
+  /* The action row must not eat the screen: three stacked full-width buttons
+     used to push the actual transfer UI below the fold. */
+  .top-actions {
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-inline-start: auto;
+    min-width: 0;
+  }
+
+  .button-row {
+    justify-content: stretch;
+  }
+
+  .button-row > *,
+  .join-row > button {
+    width: 100%;
+  }
+
+  /* Icons only from here down; the label moves into the accessible name. */
+  .top-actions > a.button-link,
+  .top-actions > .theme-toggle,
+  .top-actions > .language-menu > .language-trigger {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+  }
+
+  .top-actions .button-link span,
+  .top-actions .language-trigger > span,
+  .top-actions .language-trigger > svg:last-child {
+    display: none;
+  }
+
+  /* Text nodes that were never wrapped would still widen the icon button. */
+  .top-actions .button-link {
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .top-actions .button-link img,
+  .top-actions .button-link svg,
+  .top-actions .theme-toggle > svg,
+  .top-actions .language-trigger > svg:first-child {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    flex: 0 0 auto;
+  }
+
+  .top-actions .status-pill {
+    padding: 5px 9px;
+    font-size: 11px;
+  }
+
+  /* The trigger is a 40px icon now, so anchoring the panel to it would squeeze
+     the language names into that same 40px. Pin it to the viewport instead. */
+  .top-actions .language-menu {
+    position: static;
+  }
+
+  .top-actions .language-popover {
+    /* Anchored under the trailing edge of the icon, wide enough for the longest
+       name but never wider than the screen. */
+    inset-inline-end: 12px;
+    inset-inline-start: auto;
+    width: min(240px, calc(100vw - 24px));
+    max-height: min(62vh, 460px);
+  }
+
+  .brand span {
+    /* The tagline wraps to a second line on narrow phones and widens the bar. */
+    display: block;
+    max-width: 46vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .file-list-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .file-list-heading-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .chat-stream.drop-zone {
+    min-height: 240px;
+    max-height: min(56vh, 520px);
+    padding: 14px 12px;
+  }
+
+  .message-bubble {
+    max-width: 88%;
+  }
+
+  .chat-composer-row {
+    flex-wrap: wrap;
+  }
+
+  .message-input-row {
+    flex: 1 1 220px;
+  }
+
+  .pairing-qr {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .language-menu,
+  .language-trigger {
+    width: 100%;
+  }
+
+  .language-trigger {
+    justify-content: space-between;
+  }
+
+  .language-popover {
+    inset-inline: 0;
+    width: 100%;
+  }
+
+  .panel-heading {
+    align-items: flex-start;
+  }
+
+  .file-card > div,
+  .summary-card > div,
+  .diagnostics dt,
+  .diagnostics dd {
+    min-width: 0;
+  }
+
+  .device-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .diagnostics {
+    align-self: stretch;
+    grid-row: auto;
+    width: 100%;
+  }
+}

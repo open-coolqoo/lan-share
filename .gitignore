@@ -1,0 +1,30 @@
+node_modules/
+.zcode/
+.superpowers/
+.omo/
+.playwright-mcp/
+dist/
+.vite/
+.env
+.data/
+bin/
+/logs/
+*.tsbuildinfo
+.DS_Store
+android/output/
+android/.gradle/
+android/.idea/
+android/build/
+android/app/build/
+android/.kotlin/
+android/local.properties
+android/release-signing.properties
+android/keystore/
+# iOS: keep the generated LanShare.xcodeproj and Package.resolved so a clone
+# builds without XcodeGen; ignore only user-specific and build state.
+ios/.build/
+ios/DerivedData/
+ios/**/xcuserdata/
+__pycache__/
+*.swp
+*.swo

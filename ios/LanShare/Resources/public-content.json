@@ -1,0 +1,31 @@
+{
+  "siteName": "Lan-Share",
+  "description": "Send files directly between nearby devices.",
+  "iconUrl": "",
+  "primaryColor": "#0f6b55",
+  "accentColor": "#315d8c",
+  "defaultLocale": "en",
+  "footer": {
+    "legalName": "Lan-Share",
+    "developerName": "Lan-Share Team",
+    "contactEmail": "support@lanshare.example",
+    "copyright": "© 2026 Lan-Share. All rights reserved.",
+    "links": [
+      {"label": "Privacy", "url": "/privacy"},
+      {"label": "Terms", "url": "/terms"},
+      {"label": "Security", "url": "/security"},
+      {"label": "FAQ", "url": "/faq"},
+      {"label": "Compatibility", "url": "/compatibility"},
+      {"label": "About", "url": "/about"}
+    ]
+  },
+  "rtc": {"iceServers": []},
+  "pages": [
+    {"slug": "privacy", "updatedAt": "2026-07-24", "locales": {"en": {"title": "Privacy Policy", "body": "Lan-Share for Android uses temporary room and session information to connect your device with the device you choose. File contents are transferred between paired devices and are not intentionally stored by Lan-Share.\n\nThe receiving device can review file names and sizes before accepting a transfer. Pairing information expires, and closing a session ends its temporary connection.\n\nFor privacy questions, contact privacy@lanshare.example."}}},
+    {"slug": "terms", "updatedAt": "2026-07-24", "locales": {"en": {"title": "Terms of Use", "body": "Use Lan-Share only for files you are allowed to share. Do not transfer unlawful, harmful, infringing, abusive, or malicious material, and do not attempt to interfere with the service.\n\nLan-Share is a temporary transfer utility, not backup or archival storage. Keep your own copy until the receiving device confirms a successful download. Availability depends on device, network, and WebRTC conditions."}}},
+    {"slug": "security", "updatedAt": "2026-07-24", "locales": {"en": {"title": "Security", "body": "Lan-Share uses short-lived pairing codes and temporary session credentials. Verify the receiving device and do not publish connection codes.\n\nFile bytes are sent only after the receiver accepts the offered file. Keep Android and the app updated, and avoid transferring sensitive files over devices or networks you do not trust.\n\nReport security issues to security@lanshare.example."}}},
+    {"slug": "faq", "updatedAt": "2026-07-24", "locales": {"en": {"title": "FAQ", "body": "What does Lan-Share do?\nIt pairs nearby devices with an 8-digit code and transfers selected files after the receiver accepts them.\n\nDo I need an account?\nNo account is required for file transfer.\n\nWhy can a connection fail?\nExpired codes, VPNs, guest Wi-Fi isolation, firewalls, mobile background restrictions, or unstable networks can prevent a direct connection. Keep both devices awake and try the same local network."}}},
+    {"slug": "compatibility", "updatedAt": "2026-07-24", "locales": {"en": {"title": "Compatibility", "body": "Lan-Share for Android requires a supported Android version, local network access, and a device capable of WebRTC data transfer.\n\nVPNs, corporate proxies, guest Wi-Fi isolation, strict firewalls, battery saver, and background restrictions can affect connectivity. Keep the app open and both devices awake until the transfer completes."}}},
+    {"slug": "about", "updatedAt": "2026-07-24", "locales": {"en": {"title": "About Lan-Share", "body": "Lan-Share for Android moves files between paired devices with a short-lived 8-digit code. The app focuses on temporary, receiver-confirmed transfer without requiring an account.\n\nThe Android app keeps its public help and policy pages inside the installed application so those pages open without contacting the Lan-Share server."}}}
+  ]
+}
