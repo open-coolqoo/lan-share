@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { createControlMessage, createFileOffer, createRecallMessage, createTextMessage, parseControlMessage, sanitizeFileName, sha256Hex } from './protocol'
+import { describe, expect, it, vi } from 'vitest'
+import { createControlMessage, createFileOffer, createRecallMessage, createTextMessage, parseControlMessage, randomUUID, sanitizeFileName, sha256Hex } from './protocol'
 
 describe('transfer protocol helpers', () => {
   it('sanitizes path-like file names before publishing metadata', () => {
@@ -9,6 +9,19 @@ describe('transfer protocol helpers', () => {
   it('never returns an empty file name', () => {
     expect(sanitizeFileName('////')).toBe('____')
     expect(sanitizeFileName('   ')).toBe('unnamed-file')
+  })
+
+  it('builds a v4 UUID without crypto.randomUUID on insecure origins', () => {
+    const original = Object.getOwnPropertyDescriptor(globalThis.crypto, 'randomUUID')
+    Object.defineProperty(globalThis.crypto, 'randomUUID', { configurable: true, value: undefined })
+    try {
+      expect(randomUUID()).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      )
+    } finally {
+      if (original) Object.defineProperty(globalThis.crypto, 'randomUUID', original)
+      else delete (globalThis.crypto as { randomUUID?: unknown }).randomUUID
+    }
   })
 
   it('creates metadata without reading file contents', () => {

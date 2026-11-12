@@ -134,15 +134,9 @@ struct ChatDetailsSheet: View {
 
     @ViewBuilder
     private var qr: some View {
-        if let code = details.code,
-           let image = PairingQr.image(
-               for: PairingCodes.buildPairingURL(
-                   origin: model.state.origin,
-                   code: code,
-                   locale: model.state.locale,
-               ),
-               points: 80,
-           ) {
+        if details.code != nil,
+           !model.state.lanQrPayload.isEmpty,
+           let image = PairingQr.image(for: model.state.lanQrPayload, points: 80) {
             VStack(spacing: 4) {
                 // Same pairing QR the home page draws (`PairingQr.image`); a
                 // white quiet zone stays behind it in both appearances.

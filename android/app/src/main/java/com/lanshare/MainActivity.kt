@@ -218,6 +218,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        viewModel.refreshLocalNetworkPermission()
         viewModel.onAppForegrounded()
     }
 
@@ -379,6 +380,16 @@ internal fun AppScreen(
         }
         pendingIncomingFileIds = emptyList()
     }
+    val localNetworkPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        viewModel.onLocalNetworkPermissionChanged(granted)
+    }
+    var localNetworkPermissionAsked by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(state.localNetworkPermissionDenied) {
+        if (state.localNetworkPermissionDenied && !localNetworkPermissionAsked) {
+            localNetworkPermissionAsked = true
+            localNetworkPermissionLauncher.launch(ACCESS_LOCAL_NETWORK_PERMISSION)
+        }
+    }
     val acceptIncoming: (List<String>) -> Unit = { fileIds ->
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ||
             ContextCompat.checkSelfPermission(baseContext, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
@@ -497,6 +508,9 @@ internal fun AppScreen(
                             onOpenShare = { selectedTab = BottomTab.TRANSFER },
                             onDisconnect = requestDisconnect,
                             onOpenHotspotGuide = { hotspotGuideVisible = true },
+                            onRequestLocalNetworkPermission = {
+                                localNetworkPermissionLauncher.launch(ACCESS_LOCAL_NETWORK_PERMISSION)
+                            },
                         )
                         // 传输 is the conversation: the same screen before and after pairing.
                         BottomTab.TRANSFER -> ChatConversationScreen(
@@ -582,7 +596,6 @@ internal fun AppScreen(
             }
             if (state.roomCreateFailureNotice) {
                 RoomCreateFailureDialog(
-                    webOrigin = state.origin,
                     onRetry = viewModel::createRoom,
                     onDismiss = viewModel::dismissCreateFailureNotice,
                 )
@@ -658,7 +671,9 @@ private fun ConnectionTabScreen(
     onOpenShare: () -> Unit,
     onDisconnect: () -> Unit,
     onOpenHotspotGuide: () -> Unit,
+    onRequestLocalNetworkPermission: () -> Unit,
 ) {
+    val context = LocalContext.current
     // Wide canvases (tablets, unfolded phones) read as the two-column pairing
     // board; phones keep the single column. The cap follows the page grid.
     val wide = LocalConfiguration.current.screenWidthDp >= 600
@@ -674,6 +689,12 @@ private fun ConnectionTabScreen(
                         .padding(vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
+                    if (state.localNetworkPermissionDenied) {
+                        LocalNetworkPermissionCard(
+                            onRequest = onRequestLocalNetworkPermission,
+                            onOpenSettings = { openAppSettings(context) },
+                        )
+                    }
                     if (state.channelReady) {
                         pairedSummaryState(state)?.let { summary ->
                             PairedSummaryPanel(summary, onDisconnect = onDisconnect)
@@ -1182,11 +1203,9 @@ private fun DirectConnectionFailureDialog(
 
 @Composable
 private fun RoomCreateFailureDialog(
-    webOrigin: String,
     onRetry: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val uriHandler = LocalUriHandler.current
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -1206,15 +1225,6 @@ private fun RoomCreateFailureDialog(
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(stringResource(R.string.room_create_failed_message), color = appTextPrimary(), fontSize = 15.sp)
                 Text(stringResource(R.string.room_create_failed_web_hint), color = appMuted(), fontSize = 14.sp)
-                Text(
-                    text = webOrigin,
-                    color = LocalPrimaryColor.current,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                    modifier = Modifier.clickable {
-                        runCatching { uriHandler.openUri(webOrigin) }
-                    },
-                )
             }
         },
         dismissButton = {
@@ -1231,6 +1241,39 @@ private fun RoomCreateFailureDialog(
         titleContentColor = appTextPrimary(),
         textContentColor = appTextPrimary(),
     )
+}
+
+@Composable
+private fun LocalNetworkPermissionCard(
+    onRequest: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(PanelShape)
+            .background(appSurfaceAlt())
+            .border(1.dp, appLine(), PanelShape)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(stringResource(R.string.local_network_permission_title), color = appTextPrimary(), fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.local_network_permission_message), color = appMuted(), fontSize = 13.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            WebButton(
+                label = stringResource(R.string.grant_local_network_permission),
+                primary = true,
+                modifier = Modifier.weight(1f),
+                onClick = onRequest,
+            )
+            WebButton(
+                label = stringResource(R.string.open_settings),
+                primary = false,
+                modifier = Modifier.weight(1f),
+                onClick = onOpenSettings,
+            )
+        }
+    }
 }
 
 @Composable
@@ -1471,7 +1514,7 @@ private fun TopBar(state: AppUiState) {
     }
 }
 
-internal fun homeHeaderDescription(siteDescription: String?): String = "https://lanshare.example"
+internal fun homeHeaderDescription(siteDescription: String?): String = "Local pairing"
 
 internal fun drawerHeaderDescription(siteDescription: String?): String = homeHeaderDescription(siteDescription)
 
@@ -1631,6 +1674,22 @@ private fun SelfCard(state: AppUiState, viewModel: AppViewModel) {
             fontSize = 13.sp,
         )
         PairingQrBlock(state = state, code = pairing.localCode)
+        if (state.lanBrowserUrl.isNotBlank()) {
+            Text(stringResource(R.string.browser_url_hint), color = appMuted(), fontSize = 13.sp)
+            Text(
+                state.lanBrowserUrl,
+                color = appTextPrimary(),
+                fontSize = 12.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            WebButton(
+                label = stringResource(R.string.copy_browser_url),
+                primary = false,
+                modifier = Modifier.fillMaxWidth(),
+                onClick = viewModel::copyBrowserUrl,
+            )
+        }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             WebButton(label = if (pairing.canRefreshCode) stringResource(R.string.refresh_code) else stringResource(R.string.create_code), primary = true, enabled = !actionsLocked, onClick = viewModel::createRoom)
             WebButton(label = if (state.codeCopied) stringResource(R.string.copied) else stringResource(R.string.copy), primary = false, enabled = pairing.localCode != null && !actionsLocked, onClick = viewModel::copyCode)
@@ -1641,7 +1700,7 @@ private fun SelfCard(state: AppUiState, viewModel: AppViewModel) {
 @Composable
 private fun PairingQrBlock(state: AppUiState, code: String?) {
     val primary = LocalPrimaryColor.current
-    val qr = code?.let { runCatching { pairingQrImage(state.origin, it, state.locale, 176) }.getOrNull() }
+    val qr = code?.let { runCatching { pairingQrImage(state.lanQrPayload, 176) }.getOrNull() }
     Row(
         modifier = Modifier
             .fillMaxWidth()

@@ -1,5 +1,17 @@
 import Foundation
 
+public struct RoomApiError: Error, Equatable, Sendable {
+    public let code: String
+    public let message: String
+    public let status: Int?
+
+    public init(code: String, message: String, status: Int?) {
+        self.code = code
+        self.message = message
+        self.status = status
+    }
+}
+
 public struct ClientCapabilities: Codable, Equatable, Sendable {
     public let webrtc: Bool
     public let fileSystemAccess: Bool
@@ -21,50 +33,6 @@ public struct ClientCapabilities: Codable, Equatable, Sendable {
     )
 }
 
-public struct RoomJoinRequest: Codable, Sendable {
-    public var roomKey: String?
-    public let deviceId: String
-    public let deviceLabel: String
-    public let deviceType: String
-    public let capabilities: ClientCapabilities
-
-    public init(
-        roomKey: String? = nil,
-        deviceId: String,
-        deviceLabel: String,
-        deviceType: String,
-        capabilities: ClientCapabilities
-    ) {
-        self.roomKey = roomKey
-        self.deviceId = deviceId
-        self.deviceLabel = deviceLabel
-        self.deviceType = deviceType
-        self.capabilities = capabilities
-    }
-
-    private enum CodingKeys: String, CodingKey {
-        case roomKey, deviceId, deviceLabel, deviceType, capabilities
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encodeIfPresent(roomKey, forKey: .roomKey)
-        try container.encode(deviceId, forKey: .deviceId)
-        try container.encode(deviceLabel, forKey: .deviceLabel)
-        try container.encode(deviceType, forKey: .deviceType)
-        try container.encode(capabilities, forKey: .capabilities)
-    }
-}
-
-public struct RoomCloseRequest: Codable, Equatable, Sendable {
-    public let deviceId: String
-    public let sessionToken: String
-
-    public init(deviceId: String, sessionToken: String) {
-        self.deviceId = deviceId
-        self.sessionToken = sessionToken
-    }
-}
 
 public struct TransferLimits: Codable, Equatable, Sendable {
     public let maxFileSize: Int

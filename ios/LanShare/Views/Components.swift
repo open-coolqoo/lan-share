@@ -320,7 +320,7 @@ struct TopBar: View {
                 Text(config?.siteName ?? "LanShare")
                     .font(.headline.weight(.bold))
                     .foregroundStyle(.primary)
-                Text("https://lanshare.example")
+                Text("Local pairing")
                     .font(.caption2)
                     .foregroundStyle(Theme.muted)
                     .lineLimit(1)

@@ -38,12 +38,6 @@ public enum PairingCodes {
         !isWeakCode(code)
     }
 
-    /// Builds the Web-compatible pairing URL: `?pair=CODE&locale=XX`.
-    public static func buildPairingURL(origin: String, code: String, locale: String) -> String {
-        let separator = origin.contains("?") ? "&" : "?"
-        return "\(origin.trimmingCharacters(in: CharacterSet(charactersIn: "/")))/\(separator)pair=\(code)&locale=\(locale)"
-    }
-
     /// Accepts a raw 8-digit code or a scanned payload that embeds one.
     public static func pairingCode(fromScanResult raw: String?) -> String? {
         guard let value = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {

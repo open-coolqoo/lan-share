@@ -588,9 +588,9 @@ private fun ChatConnectionDetailsSheet(
         val primary = LocalPrimaryColor.current
         val barFill = if (dark) ChatBarDark else ChatBarLight
         val divider = if (dark) ChatBarLineDark else ChatBarLineLight
-        val qr = details.code?.let { code ->
-            remember(state.origin, code, state.locale) {
-                runCatching { pairingQrImage(state.origin, code, state.locale, CHAT_DETAILS_QR_PX) }.getOrNull()
+        val qr = details.code?.let {
+            remember(state.lanQrPayload) {
+                runCatching { pairingQrImage(state.lanQrPayload, CHAT_DETAILS_QR_PX) }.getOrNull()
             }
         }
         Box(

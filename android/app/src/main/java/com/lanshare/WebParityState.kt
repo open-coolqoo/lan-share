@@ -197,7 +197,9 @@ fun directFailureState(state: AppUiState): DirectFailureState = DirectFailureSta
 )
 
 const val DIRECT_CONNECTION_FAILURE_TIMEOUT_MS = 30_000L
-const val SIGNALING_RECONNECT_WINDOW_MS = 5 * 60_000L
+// Ten seconds is long enough for a LAN resume and short enough that a dead
+// session never leaves the conversation behind a disabled composer.
+const val SIGNALING_RECONNECT_WINDOW_MS = 10_000L
 private const val SIGNALING_RECONNECT_BASE_DELAY_MS = 1_000L
 private const val SIGNALING_RECONNECT_MAX_DELAY_MS = 10_000L
 
@@ -301,7 +303,7 @@ fun connectionState(state: AppUiState): ConnectionState {
         signalingLabel = if (state.signalingReady) "Authenticated" else "Not connected",
         channelLabel = if (state.channelReady) "Open" else "Not ready",
         diagnostics = listOf(
-            "Origin: ${state.origin}",
+            "Browser: ${state.lanBrowserUrl.ifBlank { "-" }}",
             "Room: ${state.joinedRoom?.roomId ?: "-"}",
             "Role: ${state.joinedRoom?.role ?: "-"}",
             "Peer count: ${state.joinedRoom?.peerCount ?: 0}",
@@ -663,6 +665,11 @@ fun shouldAutoRefreshPairingCode(state: AppUiState, nowMs: Long): Boolean =
     state.createdCode != null &&
         state.pairingExpiresAtMs != null &&
         !state.channelReady &&
+        // A room with a peer in it is never refreshed. `channelReady` alone is
+        // not enough: backgrounding the app clears it, and the refresh that
+        // followed tore down the live session — the other device saw a reset
+        // and fell into "reconnecting" for good.
+        state.peerDeviceLabel.isBlank() &&
         state.joinedRoom?.role != "peer" &&
         !connectionActionsLocked(state) &&
         nowMs >= state.pairingExpiresAtMs

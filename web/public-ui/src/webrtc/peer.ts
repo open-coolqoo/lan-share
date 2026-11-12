@@ -1,4 +1,4 @@
-import type { SignalingMessage } from '../signaling/api'
+import type { SignalingMessage } from '../signaling/types'
 
 type ConnectionState = 'new' | 'connecting' | 'connected' | 'disconnected' | 'failed' | 'closed'
 

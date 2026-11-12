@@ -1,7 +1,11 @@
 package com.lanshare
 
+import java.io.IOException
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+
+/** Local room failures carry a stable code for the UI and logs. */
+class RoomApiException(val code: String, message: String) : IOException(message)
 
 @Serializable
 data class ClientCapabilities(
@@ -9,21 +13,6 @@ data class ClientCapabilities(
     val fileSystemAccess: Boolean,
     val maxChunkSize: Long,
     val maxReadableFileSize: Long,
-)
-
-@Serializable
-data class RoomJoinRequest(
-    val roomKey: String = "",
-    val deviceId: String,
-    val deviceLabel: String,
-    val deviceType: String,
-    val capabilities: ClientCapabilities,
-)
-
-@Serializable
-data class RoomCloseRequest(
-    val deviceId: String,
-    val sessionToken: String,
 )
 
 @Serializable

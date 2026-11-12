@@ -170,6 +170,19 @@ final class LocalNetworkAuthorization {
         self.browser = browser
     }
 
+    /// Re-runs the probe after a refusal: the user may have granted access in
+    /// Settings, and without this the app would stay blocked until relaunch.
+    func refresh() {
+        guard status == .refused else { return }
+        browser?.cancel()
+        browser = nil
+        resolutionTask?.cancel()
+        resolutionTask = nil
+        probe = LocalNetworkProbe()
+        status = .pending
+        start()
+    }
+
     /// Feed this from the app's scene phase observer, including the initial
     /// phase, so an answered alert can be told apart from one still on screen.
     func handleScenePhase(_ phase: ScenePhase) {

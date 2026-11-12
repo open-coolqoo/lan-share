@@ -19,7 +19,7 @@ struct SplashView: View {
                         .frame(width: 228, height: 104)
                     wordmark
                 }
-                Text("Open lanshare.example on your computer, then use an 8-digit code or QR code to transfer files with your iPhone.")
+                Text("No internet needed. Keep Lan-Share open on this device, then pair another phone or a browser on the same Wi-Fi with an 8-digit code or QR code.")
                     .font(.system(size: 15))
                     .lineSpacing(4)
                     .foregroundStyle(palette.description)

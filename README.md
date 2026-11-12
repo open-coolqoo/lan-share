@@ -10,7 +10,7 @@
 
 **Free file transfer between any devices, over your local network.**
 
-[**lan-share.com**](https://lan-share.com) · [**Android on Google Play**](https://play.google.com/store/apps/details?id=com.lanshare) · [FAQ](https://lan-share.com/faq)
+[**Android on Google Play**](https://play.google.com/store/apps/details?id=com.lanshare) · [**GitHub**](https://github.com/open-coolqoo/lan-share) · [FAQ](https://lan-share.com/faq)
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
@@ -18,27 +18,52 @@
 
 ---
 
-LanShare moves files directly between your devices: create a room on one device, pair another device with the 8-digit room code or a QR scan, and send files over a direct WebRTC connection on your Wi-Fi or hotspot. The coordinating server never sees file contents, and nothing is stored in any cloud.
+LanShare moves files directly between your devices with **no server and no
+internet**: one device creates a room locally, the other pairs with an 8-digit
+code or a QR scan, and files travel over a direct WebRTC DataChannel on your
+Wi-Fi or hotspot. Nothing is uploaded to a cloud.
 
-No account. No cables. No upload-and-wait. It works between phone and computer, phone and phone, and computer and computer — across operating systems, because the web client runs in any browser.
+No account. No cables. No upload-and-wait. It works between phone and computer,
+phone and phone, and computer and computer.
+
+## Local pairing
+
+- **Native apps (Android and iOS)** create the room on the device itself: an
+  ephemeral TCP listener, Bonjour discovery, and an HMAC-authenticated handshake.
+- The host shows a short-lived 8-digit code and a QR. The QR is a local URL
+  (`http://<lan-ip>:<port>/?pair=<code>&addr=<ip>:<lan-port>`) that works for
+  both paths:
+  - the in-app scanner on another phone reads the code and host addresses and
+    joins over the LAN socket;
+  - a phone camera or a desktop browser opens the native host's local page.
+- **Web** runs a tiny local service on the computer (`web/local-service`). The
+  service owns the LAN TCP listener and Bonjour advertisement, serves the web
+  client, and lets the browser be the room host or a guest; another browser on
+  the same Wi-Fi opens the host's URL and pairs with it. A native host can also
+  serve the web client through its own bridge. No hosted cloud web deployment is
+  used for pairing.
 
 ## Download
 
 | Platform | Get LanShare |
 | --- | --- |
-| Web — any device, nothing to install | **[lan-share.com](https://lan-share.com)** |
 | Android | **[Google Play](https://play.google.com/store/apps/details?id=com.lanshare)** |
 | iOS | App Store — search for “Lan-Share” |
-| Clients | Build the Web, Android, and iOS clients from this repository |
+| Web | Run `web/local-service` on a computer, or open the browser address shown by a running Android/iOS host |
+| Clients | Build the Web, Android, iOS, and web local service from this repository |
 
 ## Why LanShare
 
-- **Direct transfer, no cloud.** Files move device-to-device over a WebRTC DataChannel on the local network. The private signaling service coordinates the handshake only — file bytes never leave your devices.
+- **Direct, serverless transfer.** The host device coordinates the room itself;
+  file bytes move device-to-device over a WebRTC DataChannel.
 - **Pair in seconds.** An 8-digit code or a QR scan. No accounts, no email, no setup.
-- **Cross-platform.** Web in any browser, native Android (Kotlin + Jetpack Compose), native iOS (SwiftUI). All three clients interoperate over one protocol.
+- **Cross-platform.** Native Android (Kotlin + Jetpack Compose), native iOS
+  (SwiftUI), and the web client served by either native host.
 - **Chat while you transfer.** Paired devices can exchange text messages alongside files.
-- **Receiver stays in control.** Every incoming item is accepted and saved explicitly by the receiving side.
-- **Private by design.** Works on your Wi-Fi or hotspot; guest networks with AP isolation and VPNs that block local traffic are the only common blockers.
+- **Receiver stays in control.** Every incoming item is accepted and saved explicitly.
+- **Private by design.** Works on your Wi-Fi or hotspot; no external STUN/TURN
+  servers are used. Guest networks with AP isolation and VPNs that block local
+  traffic are the common blockers.
 - **14 languages.** The app UI ships authored copy in 14 locales.
 - **Open source.** Apache-2.0. Audit the clients, build them yourself, or fork them.
 
@@ -46,24 +71,30 @@ No account. No cables. No upload-and-wait. It works between phone and computer, 
 
 ```mermaid
 flowchart LR
-    A["Device A<br>browser · Android · iOS"]
-    S["Private signaling<br>coordinator"]
-    B["Device B<br>browser · Android · iOS"]
-    A <-->|"1 create room / join<br>8-digit code or QR"| S
-    B <-->|"WebSocket signaling<br>SDP + ICE candidates"| S
-    A <-->|"2 direct WebRTC DataChannel<br>files and messages —<br>never touch the service"| B
+    H["Native host<br>Android or iOS"]
+    N["Native guest<br>Android or iOS"]
+    W["Browser guest<br>desktop or phone"]
+    H <-->|"8-digit code / local QR<br>LAN TCP + Bonjour + HMAC"| N
+    H <-->|"serves the web UI +<br>HTTP polling for SDP/ICE"| W
+    H <-->|"direct WebRTC DataChannel<br>files and messages"| N
+    H <-->|"direct WebRTC DataChannel<br>files and messages"| W
 ```
 
-1. One device creates a room and receives a short-lived 8-digit code plus a QR code.
-2. The other device joins with the code. Both sides open a WebSocket signaling channel to the private signaling service and exchange WebRTC offers, answers, and ICE candidates.
-3. The devices establish a direct peer-to-peer connection and files (and chat messages) flow over the WebRTC DataChannel.
-
-The private signaling service handles room lifecycle, WebSocket signaling, and heartbeats. It never relays file data. LanShare uses direct local-network WebRTC with no external ICE servers, so both devices need to be on the same Wi-Fi/LAN or hotspot.
+1. The host creates an 8-digit code, a LAN TCP listener, a Bonjour advertisement,
+   and a local HTTP bridge that serves the web client.
+2. A native guest joins with the code or the QR: a challenge/HMAC handshake runs
+   over the TCP socket, then SDP/ICE flow through the same socket.
+3. A browser guest opens the host's local URL. The page calls the host's HTTP
+   bridge (`/__bridge__/join`, `/events`, `/signal`); the host emits the WebRTC
+   offer and the browser answers.
+4. Files and chat messages travel over the DataChannel. The bridge only carries
+   signaling, never file bytes.
 
 ## Source layout
 
 ```text
 web/public-ui/         Web client (React + TypeScript + Vite)
+web/local-service/     Web local service (Node.js; LAN listener, Bonjour, signaling bridge)
 android/               Android client (Kotlin + Compose)
 ios/                   iOS client (SwiftUI; project.yml is the XcodeGen source of truth)
 ```
@@ -76,15 +107,38 @@ ios/                   iOS client (SwiftUI; project.yml is the XcodeGen source o
 
 ## Web client
 
+Build the web client first; both the local service and the native apps serve
+that build.
+
 ```bash
 cd web/public-ui
 npm install
-npm run dev
+npm run build
 ```
 
-Create a production build with `npm run build`.
+Then run the web local service on the computer that should host the room:
 
-The public client uses placeholder room/signaling paths under `/__private__`. A private build sets `VITE_PRIVATE_API_BASE` (room API prefix) and `VITE_SIGNALING_URL` (WebSocket URL); the dev server proxies `/__private__` to `VITE_API_TARGET`.
+```bash
+cd web/local-service
+npm install
+npm start
+```
+
+The service prints a **host page** URL (with a one-time host token) and a
+**guest URL**/QR for other devices. It opens the host page automatically by
+default; pass `--no-open` to skip that, or `--port 8080` to pin the HTTP port.
+
+- The host page must stay open while another device is paired.
+- A native Android/iOS guest can scan the QR and join over the LAN TCP socket.
+- A browser guest (including another computer on the same Wi-Fi) can open the
+  guest URL or the host's browser address.
+- `web/local-service` is a Node.js process: the web client itself cannot listen
+  on a LAN port, so this local service is what makes the browser a local host.
+
+`npm run dev` in `web/public-ui` starts the Vite UI for development, but without
+a local service or a native host the page cannot pair. The production build
+output (`web/public-ui/dist`) is generated and gitignored; build it before the
+native apps or the local service.
 
 ## Android
 
@@ -95,9 +149,15 @@ cd android
 ./gradlew :app:assembleDebug
 ```
 
-Version defaults live in `android/version.properties`; override them with `-PappVersionCode` and `-PappVersionName` when invoking Gradle.
+The Gradle build copies `web/public-ui/dist` into the APK as `assets/web` and
+fails with a clear message if the web client has not been built.
 
-The public client ships placeholder room/signaling paths. A private build passes `-PprivateRoomApiPrefix=...` and `-PprivateSignalingPath=...`; `DEFAULT_SERVER_ORIGIN` sets the backend origin.
+Version defaults live in `android/version.properties`; override them with
+`-PappVersionCode` and `-PappVersionName` when invoking Gradle.
+
+Android 17 (API 37) requires the `ACCESS_LOCAL_NETWORK` runtime permission for
+the LAN listener, WebRTC host candidates, and the browser bridge. The app
+requests it on launch and shows a settings card when it is denied.
 
 Release signing reads `android/release-signing.properties`. `android/scripts/create-release-key.sh` creates the upload key, and `android/scripts/build-release-aab.sh` builds the signed bundle.
 
@@ -112,23 +172,25 @@ cd ios
 open LanShare.xcodeproj
 ```
 
-The public client uses placeholder endpoints in `ios/LanShare/Room/RoomApiClient.swift` (`PrivateEndpoints`). A private build replaces those constants; `defaultOrigin` sets the backend origin (debug builds also honor `LANSHARE_ORIGIN`).
+A post-build script copies `web/public-ui/dist` into `.app/web`; build the web
+client first. The iOS local-network permission is required for the LAN listener
+and browser bridge; the app shows a banner and a Settings shortcut when it is
+denied.
 
 The WebRTC dependency (`stasel/WebRTC`, version-pinned) resolves through Swift Package Manager on first build.
 
 Build the `LanShare` scheme in Xcode.
 
-## Private backend endpoints
+## Limits
 
-The room/signaling service is not part of this repository. The public clients ship placeholders and need a private build configuration:
-
-| Client | Configuration |
-| --- | --- |
-| Web | `VITE_PRIVATE_API_BASE`, `VITE_SIGNALING_URL` |
-| Android | `-PprivateRoomApiPrefix`, `-PprivateSignalingPath`, `DEFAULT_SERVER_ORIGIN` |
-| iOS | `PrivateEndpoints` in `RoomApiClient.swift`, `defaultOrigin` / `LANSHARE_ORIGIN` |
-
-If a direct connection fails, verify both devices are on the same Wi-Fi/LAN or hotspot, disable VPN/proxy, and check guest-network/AP isolation and firewall rules.
+- The host must stay in the foreground while another device is paired: iOS
+  suspends background apps and stops the HTTP bridge; the local service must
+  keep running on the computer.
+- The web local service is a Node.js process. The browser alone cannot listen on
+  a LAN port, so a web-hosted room requires that service (or a native host).
+- If a direct connection fails, verify both devices are on the same Wi-Fi/LAN or
+  hotspot, disable VPN/proxy, and check guest-network/AP isolation and firewall
+  rules.
 
 ## Verification
 
@@ -138,7 +200,19 @@ npm test
 npm run build
 ```
 
-Android: `cd android && ./gradlew :app:assembleDebug`. iOS: build the `LanShare` scheme in Xcode.
+The local service needs the built web client; a quick check is:
+
+```bash
+cd web/local-service
+npm install
+node src/cli.mjs --no-open
+# in another shell, use the printed host page URL:
+# curl http://127.0.0.1:<port>/__bridge__/info
+```
+
+Android: `cd android && ./gradlew :app:assembleDebug`; confirm the APK contains
+`assets/web/index.html`. iOS: build the `LanShare` scheme in Xcode; confirm the
+app bundle contains `web/index.html`.
 
 ## Contributing
 

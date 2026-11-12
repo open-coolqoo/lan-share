@@ -52,6 +52,7 @@ struct LanShareApp: App {
             // can be answered without the scene ever leaving `.active`, and the
             // scheduled retries may already have run out by then.
             .onChange(of: localNetwork.status) { _, status in
+                model.updateLocalNetworkStatus(status)
                 if status == .granted {
                     model.handleLocalNetworkGranted()
                 }
@@ -62,6 +63,9 @@ struct LanShareApp: App {
             .onChange(of: scenePhase, initial: true) { _, phase in
                 localNetwork.handleScenePhase(phase)
                 if phase == .active {
+                    if localNetwork.status == .refused {
+                        localNetwork.refresh()
+                    }
                     model.handleScenePhaseActive()
                 }
                 if phase == .background {

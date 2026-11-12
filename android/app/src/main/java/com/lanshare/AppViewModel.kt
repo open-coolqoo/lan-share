@@ -12,6 +12,12 @@ import android.provider.OpenableColumns
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.lanshare.lan.LanAddress
+import com.lanshare.lan.LanDiscovery
+import com.lanshare.lan.LanJoinTarget
+import com.lanshare.lan.LanPairing
+import com.lanshare.lan.LanRoomSession
+import com.lanshare.lan.LanWebBridge
 import java.nio.charset.StandardCharsets
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -43,7 +49,6 @@ enum class AppNavigationEvent {
 }
 
 data class AppUiState(
-    val origin: String = defaultServerOrigin(),
     val locale: String = defaultAndroidLocale(),
     val localeManuallySelected: Boolean = false,
     val darkTheme: Boolean = false,
@@ -59,6 +64,12 @@ data class AppUiState(
     internal val roomCreateFailureSeen: Boolean = false,
     val joiningRoom: Boolean = false,
     val roomError: String = "",
+    /** Android 17+ local-network permission was refused; local pairing is blocked. */
+    val localNetworkPermissionDenied: Boolean = false,
+    /** Payload shown in the host QR: a LAN HTTP URL when the browser bridge is up. */
+    val lanQrPayload: String = "",
+    /** Browser URL for a desktop on the same Wi-Fi, empty when unavailable. */
+    val lanBrowserUrl: String = "",
     val joinedRoom: JoinedRoom? = null,
     val siteConfig: PublicSiteConfig? = null,
     val selectedPage: PublicPage? = null,
@@ -115,7 +126,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val downloadStore = AndroidDownloadStore(application.contentResolver)
     private val reviewPromptLock = Any()
     private var nextDownloadCompleteToastId = 1L
-    private var signaling: SignalingClient? = null
+    private var signaling: SignalingLink? = null
+    private var lanSession: LanRoomSession? = null
+    private var webBridge: LanWebBridge? = null
     private var peer: AndroidPeerRuntime? = null
     private var transfer: AndroidTransferSession? = null
     private val pendingSharedUrisLock = Any()
@@ -147,22 +160,30 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         startPairingCodeAutoRefresh()
     }
 
-    fun setOrigin(value: String) {
-        _state.update { it.copy(origin = value) }
-    }
-
     fun setRoomCode(value: String) {
         _state.update { it.copy(roomCode = value.filter { ch -> ch.isDigit() }.take(8), roomError = "") }
     }
 
     fun createRoom(): Job {
+        val app = getApplication<Application>()
+        if (!hasLocalNetworkPermission(app)) {
+            _state.update {
+                it.copy(
+                    localNetworkPermissionDenied = true,
+                    roomError = app.getString(R.string.local_network_permission_required),
+                )
+            }
+            log("room: local network permission is required")
+            return viewModelScope.launch { Unit }
+        }
         lastCreateAttemptMs = System.currentTimeMillis()
         createInFlight = true
         return viewModelScope.launch {
             try {
                 runCatching {
                     val previousCode = state.value.createdCode
-                    val created = api().create(deviceId, deviceLabel)
+                    stopWebBridge()
+                    val created = lanService().create(deviceId, deviceLabel)
                     cancelCreateRetry()
                     _state.update {
                         clearRoomCreateFailure(
@@ -172,10 +193,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                                 pairingExpiresAtMs = pairingDisplayExpiresAtMs(System.currentTimeMillis()),
                                 pairingCountdownPausedAtMs = null,
                                 codeCopied = false,
+                                localNetworkPermissionDenied = false,
                                 invalidatedCodes = listOfNotNull(previousCode) + it.invalidatedCodes,
                             ),
                         )
                     }
+                    startWebBridge(created.code)
                     log("room: created ${created.code}")
                     restartHeartbeat()
                     connectSignaling()
@@ -188,6 +211,70 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 createInFlight = false
             }
         }
+    }
+
+    /** Called after the Android 17 local-network permission result. */
+    fun onLocalNetworkPermissionChanged(granted: Boolean) {
+        if (granted) {
+            _state.update { it.copy(localNetworkPermissionDenied = false, roomError = "") }
+            createRoom()
+        } else {
+            _state.update {
+                it.copy(
+                    localNetworkPermissionDenied = true,
+                    roomError = getApplication<Application>().getString(R.string.local_network_permission_required),
+                )
+            }
+        }
+    }
+
+    private fun lanService(): LanRoomSession {
+        lanSession?.let { return it }
+        val app = getApplication<Application>()
+        val session = LanRoomSession(
+            deviceId = deviceId,
+            deviceLabel = deviceLabel,
+            scope = viewModelScope,
+            log = ::log,
+            advertiserFactory = { LanDiscovery(app) },
+        )
+        lanSession = session
+        return session
+    }
+
+    private fun startWebBridge(code: String) {
+        val session = lanSession ?: return
+        val bridge = LanWebBridge(session, getApplication<Application>().assets, ::log)
+        val port = bridge.start()
+        if (port == null) {
+            val addresses = session.localAddresses()
+            _state.update {
+                it.copy(
+                    lanBrowserUrl = "",
+                    lanQrPayload = LanPairing.buildQrPayload(code, addresses),
+                )
+            }
+            return
+        }
+        val address = bridge.browserAddress(port)
+        webBridge?.shutdown()
+        webBridge = bridge
+        _state.update {
+            it.copy(
+                lanBrowserUrl = address?.let { value -> "http://${value.authority}/?pair=$code" } ?: "",
+                lanQrPayload = LanPairing.buildQrPayload(
+                    code = code,
+                    addresses = session.localAddresses(),
+                    webOrigin = address?.authority,
+                ),
+            )
+        }
+    }
+
+    private fun stopWebBridge() {
+        webBridge?.shutdown()
+        webBridge = null
+        _state.update { it.copy(lanBrowserUrl = "", lanQrPayload = "") }
     }
 
     /**
@@ -229,6 +316,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Called when the app comes back to the foreground. */
     fun onAppForegrounded() {
+        restartDroppedSessionReconnect()
         val nowMs = System.currentTimeMillis()
         if (!shouldRetryCreateOnForeground(createInFlight, state.value.createdCode, state.value.joinedRoom, lastCreateAttemptMs, nowMs)) {
             return
@@ -238,6 +326,21 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         cancelCreateRetry()
         log("room: create retry after foreground")
         createRoom()
+    }
+
+    /**
+     * Coming back to a room whose link died while the app was away gets a fresh
+     * short window: retry for a few seconds, then drop the session rather than
+     * leave the conversation stuck behind a disabled composer.
+     */
+    private fun restartDroppedSessionReconnect() {
+        if (state.value.joinedRoom == null) return
+        if (state.value.signalingReady || state.value.channelReady) return
+        signalingReconnectDeadlineMs = 0L
+        signalingReconnectJob?.cancel()
+        signalingReconnectJob = null
+        log("signaling: retry window restarted after foreground")
+        scheduleSignalingReconnect("foreground")
     }
 
     /** Called when the app leaves the foreground. */
@@ -250,13 +353,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun joinScannedCode(rawValue: String?, noPairingCodeMessage: String) {
-        val code = pairingCodeFromScanResult(rawValue)
+        val payload = LanPairing.parseQrPayload(rawValue)
+        val code = payload?.code ?: pairingCodeFromScanResult(rawValue)
         if (code == null) {
             _state.update { it.copy(roomError = noPairingCodeMessage) }
             log("scan: no pairing code found")
             return
         }
-        joinRoom(code, openShareOnConnect = true)
+        joinRoom(
+            code = code,
+            openShareOnConnect = true,
+            lanAddresses = payload?.addresses.orEmpty(),
+        )
     }
 
     fun reportScanFailure(message: String) {
@@ -264,7 +372,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         log("scan: failed $message")
     }
 
-    private fun joinRoom(code: String, openShareOnConnect: Boolean = false) {
+    private fun joinRoom(
+        code: String,
+        openShareOnConnect: Boolean = false,
+        lanAddresses: List<LanAddress> = emptyList(),
+    ) {
         val normalizedCode = code.filter { it.isDigit() }.take(8)
         val validationState = state.value.copy(roomCode = normalizedCode)
         when (validatePeerCode(normalizedCode, validationState)) {
@@ -289,7 +401,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _state.update { pausePairingCountdown(it.copy(roomCode = normalizedCode, joiningRoom = true, roomError = ""), System.currentTimeMillis()) }
         viewModelScope.launch {
             runCatching {
-                val joined = api().join(deriveRoomKey(normalizedCode), deviceId, deviceLabel)
+                stopWebBridge()
+                val target = LanJoinTarget(
+                    code = normalizedCode,
+                    roomKey = deriveRoomKey(normalizedCode),
+                    addresses = lanAddresses,
+                )
+                val joined = lanService().join(target, deviceId, deviceLabel)
                 val nowMs = System.currentTimeMillis()
                 _state.update {
                     pausePairingCountdown(it.copy(
@@ -328,6 +446,23 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearCodeCopied() {
         _state.update { it.copy(codeCopied = false) }
+    }
+
+    fun copyBrowserUrl() {
+        val url = state.value.lanBrowserUrl
+        if (url.isBlank()) return
+        val app = getApplication<Application>()
+        val clipboard = app.getSystemService(ClipboardManager::class.java) ?: return
+        clipboard.setPrimaryClip(ClipData.newPlainText(app.getString(R.string.browser_url), url))
+        log("room: browser URL copied")
+    }
+
+    /** Re-checks the Android 17 permission after the user returns from Settings. */
+    fun refreshLocalNetworkPermission() {
+        if (!state.value.localNetworkPermissionDenied) return
+        if (!hasLocalNetworkPermission(getApplication())) return
+        _state.update { it.copy(localNetworkPermissionDenied = false, roomError = "") }
+        if (state.value.createdCode == null && !createInFlight) createRoom()
     }
 
     fun setLocale(value: String) {
@@ -381,6 +516,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             stopHeartbeat()
             _state.update { resetConnectionUiState(it).copy(transientTransportReconnecting = false) }
             log("room: disconnected")
+            // The closed listener cannot accept a new guest; start a fresh room
+            // so the Connect card shows a live code again.
+            createRoom()
         }
     }
 
@@ -407,14 +545,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun connectSignaling() {
         val room = state.value.joinedRoom ?: return
-        closeSignaling(clearReconnect = false)
-        signaling = SignalingClient(
-            origin = state.value.origin,
+        val link = lanService()
+        // LanRoomSession is both the room service and the signaling link. On a
+        // guest join the socket is already attached, so closing the previous
+        // link here would tear down the connection that just succeeded.
+        if (signaling !== link) closeSignaling(clearReconnect = false)
+        link.connect(
             room = room,
-            onEvent = ::handleSignalingEvent,
-            onDisconnect = ::handleSignalingDisconnect,
-            onLog = ::log,
-        ).also { it.connect() }
+            onEvent = { event -> handleSignalingEvent(link, event) },
+            onDisconnect = { reason -> handleSignalingDisconnect(link, reason) },
+        )
+        signaling = link
     }
 
     fun createOffer() {
@@ -480,7 +621,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun handleSignalingEvent(client: SignalingClient, event: SignalingEnvelope) {
+    private fun handleSignalingEvent(client: SignalingLink, event: SignalingEnvelope) {
         viewModelScope.launch {
             if (signaling === client) handleSignal(event)
         }
@@ -895,8 +1036,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun api(): RoomApiClient = RoomApiClient(state.value.origin)
-
     private fun startPairingCodeAutoRefresh() {
         if (pairingRefreshJob != null) return
         pairingRefreshJob = viewModelScope.launch {
@@ -918,7 +1057,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             while (true) {
                 delay(25_000L)
                 val room = state.value.joinedRoom ?: continue
-                runCatching { api().heartbeat(room) }
+                runCatching { lanService().heartbeat(room) }
                     .onSuccess { heartbeat ->
                         if (!isCurrentRoomSessionRequest(room.roomId, room.sessionToken, state.value.joinedRoom)) return@onSuccess
                         _state.update { current ->
@@ -975,7 +1114,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _state.update { resetAfterDirectConnectionFailure(it).copy(transientTransportReconnecting = false) }
         log(message)
         viewModelScope.launch {
-            if (room != null) runCatching { api().close(room) }
+            if (room != null) runCatching { lanService().close(room) }
             createRoom()
         }
     }
@@ -998,14 +1137,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun handleHeartbeatFailure(error: Throwable) {
-        if (error is RoomApiException && error.code == "invalid_session") {
-            recoverClosedRoom()
-            return
-        }
         scheduleSignalingReconnect("heartbeat failed ${error.message ?: "unknown"}")
     }
 
-    private fun handleSignalingDisconnect(client: SignalingClient, reason: String) {
+    private fun handleSignalingDisconnect(client: SignalingLink, reason: String) {
         viewModelScope.launch {
             if (signaling !== client) return@launch
             signaling = null
@@ -1067,13 +1202,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private suspend fun closeActiveRoom(room: JoinedRoom?, reason: String) {
         if (room == null) return
-        runCatching { api().close(room) }
+        runCatching { lanService().close(room) }
             .onSuccess { log("room: close sent reason=$reason room=${room.roomId}") }
             .onFailure { log("room: close failed reason=$reason room=${room.roomId} error=${it.message}") }
     }
 
     override fun onCleared() {
         closeSignaling()
+        stopWebBridge()
+        lanSession?.shutdown()
+        lanSession = null
         cleanupPendingSharedUris()
         resetPeerConnection()
         stopDirectConnectionFailureTimer()
@@ -1344,11 +1482,3 @@ private fun cleanupTemporaryFiles(application: Application) {
         application.cacheDir.resolve(name).deleteRecursively()
     }
 }
-
-private fun defaultServerOrigin(): String = preferredServerOriginForDevice(
-    defaultOrigin = BuildConfig.DEFAULT_SERVER_ORIGIN,
-)
-
-fun preferredServerOriginForDevice(
-    defaultOrigin: String,
-): String = defaultOrigin

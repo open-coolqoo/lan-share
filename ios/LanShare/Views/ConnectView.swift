@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Connect tab: join-by-code + scan (PeerCard), share-this-device code (SelfCard),
 /// live connection status with pairing steps, paired summary, and diagnostics.
@@ -26,6 +27,9 @@ struct ConnectView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
+                if model.state.localNetworkRefused {
+                    localNetworkCard
+                }
                 if model.state.directConnectionFailed {
                     ErrorBanner(
                         message: "Lan-Share currently connects only on the local network. Keep both devices on the same Wi-Fi or LAN, turn off VPN or proxy, and check guest network, AP isolation, or firewall rules.",
@@ -186,6 +190,24 @@ struct ConnectView: View {
         }
     }
 
+    private var localNetworkCard: some View {
+        Panel {
+            Text("Local network access").font(.title3.weight(.bold))
+            Text("Lan-Share needs local network access to find the other device, serve the browser page, and transfer files. Allow it in Settings, then come back.")
+                .font(.caption)
+                .foregroundStyle(Theme.muted)
+            HStack(spacing: 10) {
+                PrimaryButton(label: "Open Settings", primary: primary) {
+                    guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+                    UIApplication.shared.open(url)
+                }
+                SecondaryButton(label: "Retry", primary: primary) {
+                    model.createRoom()
+                }
+            }
+        }
+    }
+
     // MARK: Self card
 
     private var selfCard: some View {
@@ -212,6 +234,18 @@ struct ConnectView: View {
                 .font(.caption)
                 .foregroundStyle(Theme.muted)
             pairingQrBlock
+            if !model.state.lanBrowserUrl.isEmpty {
+                Text("Open this address in a browser on the same Wi-Fi.")
+                    .font(.caption)
+                    .foregroundStyle(Theme.muted)
+                Text(model.state.lanBrowserUrl)
+                    .font(.system(size: 12, design: .monospaced))
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                SecondaryButton(label: "Copy address", primary: primary) {
+                    model.copyBrowserUrl()
+                }
+            }
             HStack(spacing: 10) {
                 PrimaryButton(
                     label: model.state.createdCode == nil ? "Create code" : "Refresh code",
@@ -239,12 +273,8 @@ struct ConnectView: View {
 
     private var pairingQrBlock: some View {
         HStack(spacing: 12) {
-            if let code = model.state.createdCode,
-               let qr = PairingQr.image(for: PairingCodes.buildPairingURL(
-                   origin: model.state.origin,
-                   code: code,
-                   locale: model.state.locale,
-               )) {
+            if !model.state.lanQrPayload.isEmpty,
+               let qr = PairingQr.image(for: model.state.lanQrPayload) {
                 Image(uiImage: qr)
                     .interpolation(.none)
                     .frame(width: 86, height: 86)
@@ -261,8 +291,8 @@ struct ConnectView: View {
                     .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.line, lineWidth: 1))
             }
             VStack(alignment: .leading, spacing: 4) {
-                Text("Scan to pair").font(.subheadline.weight(.bold))
-                Text("Scan with any QR app to open the link, pair automatically, and go straight to the connected page. The link uses this short-lived code and does not include a session token.")
+                Text("Scan to pair locally").font(.subheadline.weight(.bold))
+                Text("Scan this QR inside Lan-Share on another device, with a phone camera to open this device's local page in a browser, or enter the code below. No internet is needed.")
                     .font(.caption)
                     .foregroundStyle(Theme.muted)
                     .fixedSize(horizontal: false, vertical: true)

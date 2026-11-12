@@ -5,8 +5,27 @@ import { getLocalDevice } from '../device/label'
 import { localeDirection, localeLabels, Locale, normalizeLocale, supportedLocales, translate } from '../i18n/messages'
 import { localeFromPath, prefixedPath, stripLocalePath } from '../i18n/paths'
 import { isUsableCode, normalizeCode } from '../pairing/code'
-import { deriveRoomKey } from '../pairing/roomKey'
-import { ApiError, closeRoom, closeRoomBeacon, CloseRoomRequest, createRoom, getRoomStatus, joinRoom, openSignaling, sendRoomHeartbeat, SignalingMessage, SignalingSession } from '../signaling/api'
+import {
+  BridgeError,
+  closeBridge,
+  closeBridgeBeacon,
+  fetchBridgeInfo,
+  getBridgeStatus,
+  hostLocalService,
+  joinBridgeHost,
+  openBridgeSignaling,
+  readBridgeToken,
+  rememberBridgeToken,
+  sendBridgeHeartbeat,
+} from '../signaling/bridge'
+import {
+  ApiError,
+  type BridgeAuth,
+  type BridgeInfo,
+  type LocalHostResponse,
+  type SignalingMessage,
+  type SignalingSession,
+} from '../signaling/types'
 import { FileOffer, isTextTooLarge } from '../transfer/protocol'
 import { ReceivedFile, TextExchange, TransferFileItem, TransferLimits, TransferProgress, TransferSession, TransferSessionCloseOptions, TransferStatus } from '../transfer/session'
 import { applyMetadata } from '../seo/metadata'
@@ -25,9 +44,9 @@ export interface PeerMessageItem extends TextExchange {
   recalled?: boolean
 }
 type InitialLocaleSource = 'url' | 'stored' | 'browser' | 'fallback'
+type ConnectionExitReason = 'active_disconnect' | 'remote_room_closed' | 'session_expired' | 'transient_disconnect' | 'direct_connection_failed'
 type PairingQrState = { code: string; dataUrl: string }
 type LocalRoomRefreshReason = 'initial' | 'manual' | 'timeout'
-type ConnectionExitReason = 'active_disconnect' | 'remote_room_closed' | 'session_expired' | 'transient_disconnect' | 'direct_connection_failed'
 export type ReconnectSource = 'signaling' | 'heartbeat' | 'peer-left' | 'transport'
 export type AppReceivedFile = ReceivedFile & {
   receivedAtMs: number
@@ -42,7 +61,9 @@ export const waitingHeartbeatIntervalMs = 60_000
 // often heals it within a second or two, so the link is given this long to come
 // back before the person is told to reconnect by hand.
 export const networkSwitchGraceMs = 5_000
-const reconnectWindowMs = 5 * 60_000
+// A local host rotates its code when a direct connection fails; ten seconds is
+// long enough to resume the socket and short enough not to strand the page.
+const reconnectWindowMs = 10_000
 const reconnectBaseDelayMs = 1_000
 const reconnectMaxDelayMs = 10_000
 const localRoomRetryBaseDelayMs = 2_000
@@ -70,16 +91,21 @@ export function App() {
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false)
   const t = (key: Parameters<typeof translate>[1]) => translate(locale, key)
   const localDevice = useMemo(() => getLocalDevice(), [])
+  const hostToken = useMemo(() => new URLSearchParams(window.location.search).get('host') || '', [])
   const [localCode, setLocalCode] = useState('')
-  const [invalidatedCodes, setInvalidatedCodes] = useState<string[]>([])
+  const [invalidatedCodes] = useState<string[]>([])
   const [peerCode, setPeerCode] = useState('')
   const [incomingPairingCode, setIncomingPairingCode] = useState(() => pairingCodeFromURL(window.location.search))
-  const [pairingQr, setPairingQr] = useState<PairingQrState>({ code: '', dataUrl: '' })
   const [peerConnectLoading, setPeerConnectLoading] = useState(false)
+  const [hostState, setHostState] = useState<LocalHostResponse | null>(null)
+  const [pairingQr, setPairingQr] = useState<PairingQrState>({ code: '', dataUrl: '' })
   const [codeCopied, setCodeCopied] = useState(false)
-  const [phase, setPhase] = useState<Phase>('checking-network')
-  const [mode, setMode] = useState<ConnectionMode>('local')
   const [countdown, setCountdown] = useState(ttlSeconds)
+  const [phase, setPhase] = useState<Phase>('checking-network')
+  // Start as "local" so a URL/QR pairing code auto-joins; connectPeer switches
+  // to "peer" as soon as it takes over. Browser guests never create a room.
+  const [mode, setMode] = useState<ConnectionMode>('local')
+  const [bridgeInfo, setBridgeInfo] = useState<BridgeInfo | null>(null)
   const [pairingExpiresAtMs, setPairingExpiresAtMs] = useState(() => Date.now() + ttlSeconds * 1000)
   const [failure, setFailure] = useState('')
   const [directFailureNotice, setDirectFailureNotice] = useState('')
@@ -101,7 +127,7 @@ export function App() {
   // chat. Desktop keeps the side column and never opens the sheet.
   const [detailsOpen, setDetailsOpen] = useState(false)
   const signalingRef = useRef<SignalingSession | null>(null)
-  const activeRoomRef = useRef<CloseRoomRequest | null>(null)
+  const activeRoomRef = useRef<BridgeAuth | null>(null)
   const heartbeatWindowRef = useRef<boolean[]>([])
   // Only the transition into a broken window may start a reconnect, so a long
   // outage does not restart the grace window on every subsequent beat.
@@ -120,24 +146,19 @@ export function App() {
   const retainedLocalFilesRef = useRef(new Map<string, File>())
   const requestedDownloadFileIdsRef = useRef(new Set<string>())
   const downloadAnchorRef = useRef<HTMLAnchorElement | null>(null)
-  const scannedPairingLinkRef = useRef(Boolean(incomingPairingCode))
   const browserDownloadUrlsRef = useRef(new Set<string>())
   const deferredObjectUrlRevokeTimersRef = useRef(new Map<string, number>())
   const footerRef = useRef<HTMLElement | null>(null)
   const reconnectTimerRef = useRef<number | null>(null)
   const reconnectExpiryTimerRef = useRef<number | null>(null)
-  const localRoomRetryTimerRef = useRef<number | null>(null)
   const directConnectionFailureTimerRef = useRef<number | null>(null)
-  const copyResetTimerRef = useRef<number | null>(null)
   const pairingCountdownPausedAtRef = useRef<number | null>(null)
   const reconnectDeadlineRef = useRef(0)
   const reconnectAttemptRef = useRef(0)
-  const localRoomRetryAttemptRef = useRef(0)
-  const localRoomRetryDeadlineRef = useRef(0)
-  const createRoomRequestRef = useRef(0)
   const intentionalSignalingCloseRef = useRef(false)
   const intentionallyClosedPeerRuntimesRef = useRef<WeakSet<PeerRuntime>>(new WeakSet())
   const peerConnectInFlightRef = useRef(false)
+  const hostRefreshInFlightRef = useRef(false)
   const reconnectSourceRef = useRef<ReconnectSource | null>(null)
   const peerDeviceIdRef = useRef('')
   const modeRef = useRef<ConnectionMode>(mode)
@@ -145,37 +166,57 @@ export function App() {
   const languageMenuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    if (!incomingPairingCode) return
-    window.history.replaceState(window.history.state, '', safePairingURLPath(window.location.pathname + window.location.search + window.location.hash))
+    if (hostToken || !incomingPairingCode) return
+    // Keep the code in the address bar: a reload or a re-shared link can join
+    // the same host without asking the person to re-type it.
     setPeerCode(incomingPairingCode)
     if (canAutoJoinIncomingPairingCode(incomingPairingCode, peerConnectInFlightRef.current, mode, phase)) {
       void connectPeer(incomingPairingCode)
     }
-  }, [incomingPairingCode])
+  }, [incomingPairingCode, hostToken])
 
   useEffect(() => {
+    if (!hostToken) return
     let cancelled = false
-    setPairingQr({ code: '', dataUrl: '' })
-    if (!localCode || phase === 'connected') return
-    const pairingUrl = buildPairingURL(window.location.href, localCode, locale)
-    const qrCode = localCode
-    void QRCode.toDataURL(pairingUrl, {
+    void startLocalHost(hostToken, false, () => cancelled)
+    return () => {
+      cancelled = true
+    }
+  }, [hostToken])
+
+  useEffect(() => {
+    const payload = hostState?.qrPayload || ''
+    if (!payload) {
+      setPairingQr({ code: '', dataUrl: '' })
+      return
+    }
+    let cancelled = false
+    void QRCode.toDataURL(payload, {
       errorCorrectionLevel: 'M',
       margin: 1,
       width: 176,
-      color: {
-        dark: '#10201a',
-        light: '#ffffff',
-      },
+      color: { dark: '#10201a', light: '#ffffff' },
     }).then((dataUrl) => {
-      if (!cancelled) setPairingQr({ code: qrCode, dataUrl })
+      if (!cancelled) setPairingQr({ code: hostState?.code || '', dataUrl })
     }).catch(() => {
       if (!cancelled) setPairingQr({ code: '', dataUrl: '' })
     })
     return () => {
       cancelled = true
     }
-  }, [localCode, locale, phase])
+  }, [hostState?.qrPayload, hostState?.code])
+
+  useEffect(() => {
+    if (!hostState) return
+    const timer = window.setInterval(() => {
+      const remaining = secondsUntil(pairingExpiresAtMsRef.current)
+      setCountdown(remaining)
+      if (remaining <= 0 && phase === 'waiting' && !peerConnectInFlightRef.current) {
+        void refreshHostCode()
+      }
+    }, 1_000)
+    return () => window.clearInterval(timer)
+  }, [hostState, phase])
 
   useEffect(() => {
     syncAutoLocalePath(initialLocale.source, initialLocale.locale)
@@ -187,9 +228,7 @@ export function App() {
 
   useEffect(() => {
     return () => {
-      if (copyResetTimerRef.current !== null) window.clearTimeout(copyResetTimerRef.current)
       clearDirectConnectionFailureTimer()
-      clearLocalRoomRetryTimer()
     }
   }, [])
 
@@ -199,8 +238,12 @@ export function App() {
   }, [])
 
   useEffect(() => {
+    if (bridgeInfo || hostToken) {
+      document.querySelector('meta[name="robots"]')?.setAttribute('content', 'noindex,nofollow')
+      return
+    }
     applyMetadata(siteConfig.siteName || t('appName'), t('tagline'), locale)
-  }, [siteConfig.siteName, locale])
+  }, [bridgeInfo, hostToken, siteConfig.siteName, locale])
 
   useEffect(() => {
     document.documentElement.lang = locale
@@ -255,45 +298,26 @@ export function App() {
   }, [detailsOpen])
 
   useEffect(() => {
-    if (!shouldAutoCreateLocalRoom(navigator.userAgent, navigator.webdriver, scannedPairingLinkRef.current)) return
     let cancelled = false
-    void createLocalRoom('initial', () => cancelled)
+    void fetchBridgeInfo().then((info) => {
+      if (cancelled) return
+      setBridgeInfo(info)
+      if (info) {
+        setActiveCode(info.code)
+        if (!incomingPairingCode) setPhase('waiting')
+      } else {
+        setFailure(t('errorConnectionSetupFailed'))
+        setPhase('failed')
+      }
+    })
     return () => {
       cancelled = true
     }
   }, [])
 
   useEffect(() => {
-    if (!isPairingCountdownPhase(phase) || pairingCountdownPaused) return
-    let refreshed = false
-    const syncCountdown = () => {
-      const remaining = secondsUntil(pairingExpiresAtMsRef.current)
-      if (remaining <= 0) {
-        // A waiting code renews itself so the screen never shows a dead one.
-        // The renewal is upkeep, not news: any blip along the way stays silent.
-        if (refreshed) return
-        refreshed = true
-        refreshLocalCode('timeout')
-        return
-      }
-      setCountdown(remaining)
-    }
-    syncCountdown()
-    const timer = window.setInterval(syncCountdown, 1000)
-    window.addEventListener('focus', syncCountdown)
-    window.addEventListener('pageshow', syncCountdown)
-    document.addEventListener('visibilitychange', syncCountdown)
-    return () => {
-      window.clearInterval(timer)
-      window.removeEventListener('focus', syncCountdown)
-      window.removeEventListener('pageshow', syncCountdown)
-      document.removeEventListener('visibilitychange', syncCountdown)
-    }
-  }, [phase, pairingExpiresAtMs, pairingCountdownPaused])
-
-  useEffect(() => {
     const closeOnUnload = () => {
-      if (activeRoomRef.current) closeRoomBeacon(activeRoomRef.current)
+      if (activeRoomRef.current) closeBridgeBeacon(activeRoomRef.current)
     }
     window.addEventListener('beforeunload', closeOnUnload)
     return () => window.removeEventListener('beforeunload', closeOnUnload)
@@ -313,7 +337,7 @@ export function App() {
     const heartbeat = () => {
       const activeRoom = activeRoomRef.current
       if (!activeRoom || stopped) return
-      void sendRoomHeartbeat(activeRoom)
+      void sendBridgeHeartbeat(activeRoom)
         .then((response) => {
           if (stopped) return
           if (!isCurrentRoomRequest(activeRoom, activeRoomRef.current)) return
@@ -346,108 +370,103 @@ export function App() {
     return clearDirectConnectionFailureTimer
   }, [phase, dataChannelOpen])
 
-  function refreshLocalCode(reason: LocalRoomRefreshReason) {
-    if (reason !== 'timeout') {
-      localRoomRetryAttemptRef.current = 0
-      localRoomRetryDeadlineRef.current = 0
-    }
-    void createLocalRoom(reason)
+  function setActiveRoom(joined: BridgeAuth & { sessionExpiresAt?: string | null }) {
+    activeRoomRef.current = joined
+    if (joined.sessionExpiresAt !== undefined) sessionExpiresAtRef.current = joined.sessionExpiresAt
   }
 
-  async function createLocalRoom(reason: LocalRoomRefreshReason, isCancelled: () => boolean = () => false) {
-    const requestId = createRoomRequestRef.current + 1
-    createRoomRequestRef.current = requestId
-    peerConnectInFlightRef.current = false
-    pairingCountdownPausedAtRef.current = null
-    resetConnectionFormAfterExit()
-    clearLocalRoomRetryTimer()
-    setCountdown(ttlSeconds)
-    setPairingDeadline(Date.now() + ttlSeconds * 1000)
+  async function startLocalHost(
+    token: string,
+    refresh: boolean,
+    isCancelled: () => boolean = () => false,
+  ) {
+    setMode('local')
+    modeRef.current = 'local'
+    setPhase('checking-network')
     setFailure('')
-    setConnectionPhase('checking-network')
-    resetTransfer()
-    setDataChannelOpenState(false)
-    setPeerDeviceLabel('')
-    peerDeviceIdRef.current = ''
-    setConnectionPathState('unknown')
+    peerConnectInFlightRef.current = false
     try {
-      await closeActiveRoom()
-      if (!shouldContinueConnectionRequest(requestId, createRoomRequestRef.current, isCancelled())) return
       replaceSignaling(null)
-      if (localCode) setInvalidatedCodes((items) => [localCode, ...items].slice(0, 8))
-      setLocalCode('')
-      replacePeerRuntime(null, { status: 'canceled' })
-      const created = await createRoom(localDevice)
-      if (!shouldContinueConnectionRequest(requestId, createRoomRequestRef.current, isCancelled())) {
-        void closeRoom(created).catch(() => undefined)
-        return
-      }
-      setLocalCode(created.code)
-      setActiveCode(created.code)
-      setActiveRoom(created)
-      setPairingDeadline(Date.parse(created.pairingExpiresAt))
+      await closeActiveRoom()
+      const host = await hostLocalService(token, localDevice, refresh)
+      if (isCancelled()) return
+      setHostState(host)
+      setLocalCode(host.code)
+      setActiveCode(host.code)
+      setActiveRoom({
+        roomId: host.roomId,
+        deviceId: host.deviceId,
+        sessionToken: host.hostToken,
+      })
+      setPairingDeadline(Date.parse(host.pairingExpiresAt))
+      pairingCountdownPausedAtRef.current = null
+      setCountdown(secondsUntil(Date.parse(host.pairingExpiresAt)))
+      setBridgeInfo({
+        mode: host.mode,
+        code: host.code,
+        hostDeviceId: host.hostDeviceId,
+        hostDeviceLabel: host.hostDeviceLabel,
+        roomId: host.roomId,
+        pairingExpiresAt: host.pairingExpiresAt,
+        sessionExpiresAt: host.sessionExpiresAt,
+        limits: host.limits,
+        guestUrl: host.guestUrl,
+      })
       transferLimitsRef.current = {
-        maxFileSize: created.limits.maxFileSize,
-        chunkSize: created.limits.chunkSize,
+        maxFileSize: host.limits.maxFileSize,
+        chunkSize: host.limits.chunkSize,
       }
+      setPeerDeviceLabel('')
+      peerDeviceIdRef.current = ''
+      setConnectionPathState('unknown')
+      setPhase('waiting')
       let activeSession: SignalingSession | null = null
       const pendingMessages: SignalingMessage[] = []
-      const session = await openSignaling(created, (message) => {
+      const session = await openBridgeSignaling({
+        roomId: host.roomId,
+        deviceId: host.deviceId,
+        sessionToken: host.hostToken,
+      }, (message) => {
         if (activeSession) void handleSignalMessage(message, activeSession)
         else pendingMessages.push(message)
       }, handleSignalingDisconnect)
       activeSession = session
       pendingMessages.splice(0).forEach((message) => void handleSignalMessage(message, session))
-      if (!shouldContinueConnectionRequest(requestId, createRoomRequestRef.current, isCancelled())) {
-        session.close()
-        void closeRoom(created).catch(() => undefined)
-        return
-      }
       replaceSignaling(session)
-      localRoomRetryAttemptRef.current = 0
-      localRoomRetryDeadlineRef.current = 0
-      setConnectionPhase('waiting')
     } catch (error) {
-      if (!shouldContinueConnectionRequest(requestId, createRoomRequestRef.current, isCancelled())) return
-      // Refreshing a code is upkeep the person asked for, not a failure they
-      // need to read: the page keeps trying and only a code that never arrives
-      // changes what is on screen.
-      const terminal = isTerminalLocalRoomFailure(error)
-      if (terminal) {
-        stopLocalRoomRetry()
-        setFailure(errorMessage(error, t('errorConnectionSetupFailed')))
-        setConnectionPhase('failed')
-        return
-      }
-      setFailure('')
-      setConnectionPhase('checking-network')
-      // A manual refresh retries as an initial request: the server never got to
-      // judge the attempt, so it is not a refusal that should stop the loop.
-      scheduleLocalRoomRetry(reason === 'manual' ? 'initial' : reason)
+      if (isCancelled()) return
+      setFailure(error instanceof BridgeError ? error.message : t('errorConnectionSetupFailed'))
+      setPhase('failed')
     }
   }
 
-  async function copyLocalCode() {
+  async function refreshHostCode() {
+    if (!hostToken || hostRefreshInFlightRef.current) return
+    hostRefreshInFlightRef.current = true
     try {
-      await copyText(localCode)
-      setCodeCopied(true)
-      if (copyResetTimerRef.current !== null) window.clearTimeout(copyResetTimerRef.current)
-      copyResetTimerRef.current = window.setTimeout(() => setCodeCopied(false), 1600)
-    } catch {
-      setCodeCopied(false)
-      setFailure(t('copyFailed'))
+      replaceSignaling(null)
+      await startLocalHost(hostToken, true)
+    } finally {
+      hostRefreshInFlightRef.current = false
     }
   }
 
-  function setActiveRoom(joined: CloseRoomRequest & { sessionExpiresAt?: string | null }) {
-    activeRoomRef.current = joined
-    if (joined.sessionExpiresAt !== undefined) sessionExpiresAtRef.current = joined.sessionExpiresAt
+  function copyLocalCode() {
+    if (!localCode) return
+    void copyText(localCode).then(() => {
+      setCodeCopied(true)
+      window.setTimeout(() => setCodeCopied(false), 1600)
+    }).catch(() => undefined)
+  }
+
+  function copyBrowserUrl() {
+    if (!hostState?.guestUrl) return
+    void copyText(hostState.guestUrl).catch(() => undefined)
   }
 
   function setPairingDeadline(expiresAtMs: number) {
     pairingExpiresAtMsRef.current = expiresAtMs
     setPairingExpiresAtMs(expiresAtMs)
-    setCountdown(secondsUntil(expiresAtMs))
   }
 
   function closeActiveRoom(): Promise<void> {
@@ -456,7 +475,7 @@ export function App() {
     sessionExpiresAtRef.current = null
     clearReconnectTimer()
     if (!current) return Promise.resolve()
-    return closeRoom(current).catch(() => undefined)
+    return closeBridge(current).catch(() => undefined)
   }
 
   function handleRemoteRoomClosed(reason: string) {
@@ -562,9 +581,8 @@ export function App() {
     scheduleReconnect(reason, source)
   }
 
-  function refreshLocalRoomAfterConnectionExit(reason: ConnectionExitReason) {
-    const refreshReason = localRoomRefreshReasonAfterConnectionExit(reason)
-    if (refreshReason) refreshLocalCode(refreshReason)
+  function refreshLocalRoomAfterConnectionExit(_reason: ConnectionExitReason) {
+    // Browser guests do not own a room; the code-entry form is already ready.
   }
 
   function clearReconnectTimer() {
@@ -596,47 +614,11 @@ export function App() {
     }, delay)
   }
 
-  function clearLocalRoomRetryTimer() {
-    if (localRoomRetryTimerRef.current !== null) {
-      window.clearTimeout(localRoomRetryTimerRef.current)
-      localRoomRetryTimerRef.current = null
-    }
-  }
-
   function clearDirectConnectionFailureTimer() {
     if (directConnectionFailureTimerRef.current !== null) {
       window.clearTimeout(directConnectionFailureTimerRef.current)
       directConnectionFailureTimerRef.current = null
     }
-  }
-
-  function scheduleLocalRoomRetry(reason: 'initial' | 'timeout') {
-    clearLocalRoomRetryTimer()
-    const now = Date.now()
-    if (localRoomRetryDeadlineRef.current === 0) localRoomRetryDeadlineRef.current = now + localRoomRetryWindowMs
-    const remainingMs = localRoomRetryDeadlineRef.current - now
-    if (localRoomRetryWindowExpired(localRoomRetryDeadlineRef.current, now)) {
-      // The server stayed unreachable for the whole retry window: stop looping
-      // and hand the decision back to the person in front of the screen. This is
-      // the one moment worth a message, since nothing else on the page explains
-      // why the code stopped changing.
-      stopLocalRoomRetry()
-      setFailure(t('errorConnectionSetupFailed'))
-      setConnectionPhase('failed')
-      return
-    }
-    const delay = Math.min(localRoomRetryDelay(localRoomRetryAttemptRef.current), remainingMs)
-    localRoomRetryAttemptRef.current += 1
-    localRoomRetryTimerRef.current = window.setTimeout(() => {
-      localRoomRetryTimerRef.current = null
-      void createLocalRoom(reason)
-    }, delay)
-  }
-
-  function stopLocalRoomRetry() {
-    clearLocalRoomRetryTimer()
-    localRoomRetryAttemptRef.current = 0
-    localRoomRetryDeadlineRef.current = 0
   }
 
   function scheduleReconnect(reason: string, source: ReconnectSource) {
@@ -691,7 +673,7 @@ export function App() {
     try {
       let activeSession: SignalingSession | null = null
       const pendingMessages: SignalingMessage[] = []
-      const session = await openSignaling(activeRoom, (message) => {
+      const session = await openBridgeSignaling(activeRoom, (message) => {
         if (activeSession) void handleSignalMessage(message, activeSession)
         else pendingMessages.push(message)
       }, handleSignalingDisconnect)
@@ -718,8 +700,8 @@ export function App() {
   // Coming back to it is therefore the moment the cause becomes knowable: the
   // peer is present and the transfer link is not, which means this device moved
   // to a different network and the old link is beyond healing.
-  async function settleAfterSignalingReconnected(activeRoom: CloseRoomRequest) {
-    const status = await getRoomStatus(activeRoom)
+  async function settleAfterSignalingReconnected(activeRoom: BridgeAuth) {
+    const status = await getBridgeStatus(activeRoom)
     if (!isCurrentRoomRequest(activeRoom, activeRoomRef.current)) return
     if (peerPresenceAfterReconnect(status, activeRoom.deviceId) === 'gone') {
       // The other person left; their absence is not a network fault.
@@ -732,12 +714,12 @@ export function App() {
     }
   }
 
-  function handleSignalingDisconnect(event: CloseEvent) {
+  function handleSignalingDisconnect(event?: { code?: number; reason?: string; wasClean?: boolean }) {
     if (intentionalSignalingCloseRef.current) return
     console.info('[LanShare] signaling disconnected; scheduling reconnect', {
-      code: event.code,
-      reason: event.reason,
-      wasClean: event.wasClean,
+      code: event?.code,
+      reason: event?.reason,
+      wasClean: event?.wasClean,
       phase: phaseRef.current,
       connectionPath: connectionPathRef.current,
       dataChannelOpen: dataChannelOpenRef.current,
@@ -827,9 +809,9 @@ export function App() {
     requestedDownloadFileIdsRef.current.clear()
   }
 
-  async function updatePeerDeviceLabel(joined: CloseRoomRequest) {
+  async function updatePeerDeviceLabel(joined: BridgeAuth) {
     try {
-      const status = await getRoomStatus(joined)
+      const status = await getBridgeStatus(joined)
       sessionExpiresAtRef.current = status.sessionExpiresAt
       const peer = status.peers.find((item) => item.deviceId !== joined.deviceId)
       if (peer?.deviceId) peerDeviceIdRef.current = peer.deviceId
@@ -1024,6 +1006,20 @@ export function App() {
         return
       }
       if (message.type === 'peer_left') {
+        if (hostState) {
+          // The host owns the room: a guest leaving is not the end of the
+          // session. Keep the signaling link and code, and wait for the next
+          // guest.
+          peerConnectInFlightRef.current = false
+          replacePeerRuntime(null, { status: 'canceled' })
+          resetTransfer()
+          setPeerDeviceLabel('')
+          peerDeviceIdRef.current = ''
+          setConnectionPathState('unknown')
+          setPhase('waiting')
+          setFailure('')
+          return
+        }
         handlePeerLeft()
         return
       }
@@ -1089,12 +1085,9 @@ export function App() {
     setPeerConnectLoading(true)
     modeRef.current = 'peer'
     setMode('peer')
-    clearLocalRoomRetryTimer()
-    createRoomRequestRef.current += 1
     setFailure('')
     setActiveCode(normalized)
-    const wasIncomingPairingCode = incomingPairingCode === normalized
-    if (wasIncomingPairingCode) setIncomingPairingCode(null)
+    if (incomingPairingCode === normalized) setIncomingPairingCode(null)
     setPeerDeviceLabel('')
     peerDeviceIdRef.current = ''
     setConnectionPathState('unknown')
@@ -1102,22 +1095,23 @@ export function App() {
     try {
       replaceSignaling(null)
       await closeActiveRoom()
-      const roomKey = await deriveRoomKey(normalized)
       setConnectionPhase('checking-code')
-      const joined = await joinRoom(roomKey, localDevice, readRejoinSessionToken(normalized))
-      rememberRejoinSessionToken(normalized, joined.sessionToken)
+      const joined = await joinBridgeHost(normalized, localDevice, readBridgeToken(normalized))
+      rememberBridgeToken(normalized, joined.sessionToken)
       setActiveRoom(joined)
       setPairingDeadline(Date.parse(joined.pairingExpiresAt))
       pairingCountdownPausedAtRef.current = Date.now()
+      setPeerDeviceLabel(joined.host.deviceLabel)
+      peerDeviceIdRef.current = joined.host.deviceId
       void updatePeerDeviceLabel(joined)
       transferLimitsRef.current = {
         maxFileSize: joined.limits.maxFileSize,
         chunkSize: joined.limits.chunkSize,
       }
-      setConnectionPhase(joined.peerCount >= 2 ? 'connecting' : 'waiting')
+      setConnectionPhase('connecting')
       let activeSession: SignalingSession | null = null
       const pendingMessages: SignalingMessage[] = []
-      const session = await openSignaling(joined, (message) => {
+      const session = await openBridgeSignaling(joined, (message) => {
         if (activeSession) void handleSignalMessage(message, activeSession)
         else pendingMessages.push(message)
       }, handleSignalingDisconnect)
@@ -1125,13 +1119,9 @@ export function App() {
       pendingMessages.splice(0).forEach((message) => void handleSignalMessage(message, session))
       replaceSignaling(session)
     } catch (error) {
-      const reason = errorMessage(error, t('errorConnectionFailed'))
+      const reason = error instanceof BridgeError ? error.message : errorMessage(error, t('errorConnectionFailed'))
       setFailure(reason)
       setConnectionPhase('failed')
-      if (shouldCreateLocalRoomAfterPeerFailure(error, wasIncomingPairingCode)) {
-        scannedPairingLinkRef.current = false
-        void createLocalRoom('initial')
-      }
     } finally {
       peerConnectInFlightRef.current = false
       setPeerConnectLoading(false)
@@ -1140,6 +1130,10 @@ export function App() {
 
   function disconnect() {
     peerConnectInFlightRef.current = false
+    const wasHost = hostState !== null
+    void closeActiveRoom().finally(() => {
+      if (wasHost && hostToken) void startLocalHost(hostToken, false)
+    })
     resetConnectionFormAfterExit()
     replaceSignaling(null)
     replacePeerRuntime(null, { status: 'canceled' })
@@ -1220,7 +1214,7 @@ export function App() {
     const activeRoom = activeRoomRef.current
     if (!activeRoom) return ''
     try {
-      const status = await getRoomStatus(activeRoom)
+      const status = await getBridgeStatus(activeRoom)
       const peer = status.peers.find((item) => item.deviceId !== activeRoom.deviceId)
       if (peer?.deviceLabel) setPeerDeviceLabel(peer.deviceLabel)
       return peer?.deviceId || ''
@@ -1249,12 +1243,12 @@ export function App() {
   const stepsVisible = mode === 'peer'
   const direction = getDirection(mode, phase, t)
   const steps = getSteps(phase)
-  const countdownText = `${String(Math.floor(countdown / 60)).padStart(2, '0')}:${String(countdown % 60).padStart(2, '0')}`
   const peerConnectBusy = isPeerConnectBusy(mode, phase, peerConnectLoading)
   const connectionActionsLocked = shouldLockConnectionActions(mode, phase, peerConnectLoading)
   const peerConnectDisabled = peerCode.length !== 8 || peerConnectBusy || connectionActionsLocked
   const transferActionsLocked = shouldLockTransferStartActions(transferStatus, localFiles, remoteFiles)
-  const pairingQrDataUrl = shouldDisplayPairingQr(localCode, pairingQr) ? pairingQr.dataUrl : ''
+  const pairingQrDataUrl = hostState && pairingQr.code === localCode ? pairingQr.dataUrl : ''
+  const countdownText = `${String(Math.floor(countdown / 60)).padStart(2, '0')}:${String(countdown % 60).padStart(2, '0')}`
 
   return (
     <div className={(paired ? 'page is-paired' : 'page is-unpaired') + (detailsOpen ? ' details-open' : '')}>
@@ -1327,41 +1321,52 @@ export function App() {
         <section className="connection-area" aria-label={t('connectionArea')}>
           {!paired && (
             <div className="connection-cards">
-              <article className="panel self-card">
-                <div className="panel-heading">
-                  <h2>{t('selfCard')}</h2>
-                </div>
-                <span className="field-label">{t('localCode')}</span>
-                <div className="local-code-row">
-                  <strong className="code-display">{localCode}</strong>
-                  <span className={`ttl-badge${countdown <= 30 ? ' is-urgent' : ''}`}>{`${t('security')} ${countdownText}`}</span>
-                </div>
-                <p className="muted">{t('selfCodeHint')}</p>
-                <div className="pairing-qr" aria-label={t('pairingQrLabel')}>
-                  <div className="pairing-qr-code">
-                    {pairingQrDataUrl ? (
-                      <img src={pairingQrDataUrl} alt={t('pairingQrAlt')} />
-                    ) : (
-                      <LoaderCircle className="spin-icon" size={24} aria-hidden="true" />
-                    )}
+              {hostState && (
+                <article className="panel self-card">
+                  <div className="panel-heading">
+                    <h2>{t('selfCard')}</h2>
+                    <span className={`ttl-badge${countdown <= 30 ? ' is-urgent' : ''}`}>{`${t('security')} ${countdownText}`}</span>
                   </div>
-                  <div>
-                    <strong>{t('pairingQrTitle')}</strong>
-                    <p className="muted">{t('pairingQrHint')}</p>
+                  <span className="field-label">{t('localCode')}</span>
+                  <div className="local-code-row">
+                    <strong className="code-display">{localCode}</strong>
                   </div>
-                </div>
-                <div className="button-row">
-                  <button className="primary" type="button" onClick={() => refreshLocalCode('manual')} disabled={connectionActionsLocked}>
-                    <RefreshCw size={16} />
-                    {t('refreshCode')}
-                  </button>
-                  <button className="copy-code-button" type="button" onClick={() => void copyLocalCode()} aria-label={t('copyCode')} disabled={!localCode || connectionActionsLocked}>
-                    {codeCopied ? <Check size={16} /> : <Copy size={16} />}
-                    <span>{codeCopied ? t('copied') : t('copyCode')}</span>
-                  </button>
-                </div>
-              </article>
-
+                  <p className="muted">Scan this QR with a camera or inside Lan-Share on another device, or open the browser address below. No internet is needed.</p>
+                  <div className="pairing-qr" aria-label={t('pairingQrLabel')}>
+                    <div className="pairing-qr-code">
+                      {pairingQrDataUrl ? (
+                        <img src={pairingQrDataUrl} alt={t('pairingQrAlt')} />
+                      ) : (
+                        <LoaderCircle className="spin-icon" size={24} aria-hidden="true" />
+                      )}
+                    </div>
+                    <div>
+                      <strong>Scan to pair locally</strong>
+                      <p className="muted">This page is served by the local service on this computer.</p>
+                    </div>
+                  </div>
+                  <div className="button-row">
+                    <button className="primary" type="button" onClick={() => void refreshHostCode()} disabled={phase === 'connecting'}>
+                      <RefreshCw size={16} />
+                      Refresh code
+                    </button>
+                    <button className="copy-code-button" type="button" onClick={copyLocalCode} disabled={!localCode}>
+                      {codeCopied ? <Check size={16} /> : <Copy size={16} />}
+                      <span>{codeCopied ? t('copied') : t('copyCode')}</span>
+                    </button>
+                  </div>
+                  {hostState.guestUrl ? (
+                    <>
+                      <p className="muted" style={{ wordBreak: 'break-all' }}>{hostState.guestUrl}</p>
+                      <button className="copy-code-button" type="button" onClick={copyBrowserUrl}>
+                        <Copy size={16} />
+                        <span>Copy browser address</span>
+                      </button>
+                    </>
+                  ) : null}
+                </article>
+              )}
+              {!hostState && (
               <article className="panel peer-card">
                 <div className="panel-heading">
                   <h2>{t('connectCard')}</h2>
@@ -1374,7 +1379,6 @@ export function App() {
                     inputMode="numeric"
                     autoComplete="one-time-code"
                     pattern="\d{8}"
-                    aria-describedby="peerCodeHint"
                     value={peerCode}
                     maxLength={8}
                     placeholder={t('peerCodePlaceholder')}
@@ -1399,7 +1403,6 @@ export function App() {
                     <span>{peerConnectBusy ? t('phaseConnecting') : t('connectAction')}</span>
                   </button>
                 </div>
-                <p className="muted" id="peerCodeHint">{t('peerCodeHint')}</p>
                 <ConnectionStatus
                   t={t}
                   direction={direction}
@@ -1410,6 +1413,7 @@ export function App() {
                   failure={failure}
                 />
               </article>
+              )}
             </div>
           )}
 
@@ -1893,7 +1897,7 @@ export function MessageBubble({
   const [copied, setCopied] = useState(false)
   const copyMessage = async () => {
     try {
-      await navigator.clipboard.writeText(message.text)
+      await copyText(message.text)
       setCopied(true)
       window.setTimeout(() => setCopied(false), 1500)
     } catch {
@@ -2739,7 +2743,7 @@ export function canAutoJoinIncomingPairingCode(incomingPairingCode: string | nul
   return incomingPairingCode !== null && !peerConnectInFlight && !(mode === 'peer' && isPeerConnectActivePhase(phase))
 }
 
-export function isCurrentRoomRequest(requestRoom: CloseRoomRequest, activeRoom: CloseRoomRequest | null): boolean {
+export function isCurrentRoomRequest(requestRoom: BridgeAuth, activeRoom: BridgeAuth | null): boolean {
   return activeRoom !== null &&
     requestRoom.roomId === activeRoom.roomId &&
     requestRoom.deviceId === activeRoom.deviceId &&

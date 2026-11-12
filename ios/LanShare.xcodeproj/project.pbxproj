@@ -8,9 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		029977BA93D6FD697830EE7F /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 32077DDEC489FCBD211DE580 /* Localizable.strings */; };
+		0759723595FEB80E9883DBF7 /* RoomService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B349007CF2AC5C5BF1829F69 /* RoomService.swift */; };
 		0E4BDD89CEB00FCFF58FB5A2 /* RoomKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 113586501D33045F4763D9E4 /* RoomKey.swift */; };
 		0E7B4EBF9A517C2F2F1CE021 /* WebRTCPeerRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D03995217EE5E2E73897127 /* WebRTCPeerRuntime.swift */; };
 		13BF7098E31ACBA85E68ADF1 /* TransferSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE9ED8478FA397851BFAD8BC /* TransferSession.swift */; };
+		1A23AE5786F2C87EB33ABAD8 /* LanProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B5497F828C122521CE4B5AB /* LanProtocol.swift */; };
 		1AC69E5190B70E8AA92661A4 /* FilePickers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 525813185D62929FD3E37B25 /* FilePickers.swift */; };
 		1C627EF31AAAF5F092C40145 /* ChatDetailsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF7A422A4A57DD41B38AFEF0 /* ChatDetailsSheet.swift */; };
 		1EAAFCBBE54B0F4490C90701 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = DAFE41F83A99B006E646257E /* Localizable.strings */; };
@@ -20,14 +22,14 @@
 		3B7DDEBD638683D1FACC7043 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 3525DB2C768A31FE4F89C2E4 /* Localizable.strings */; };
 		40001ECA35ACADB8ED728CDC /* ConnectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C986D5317499CE2761A73FCD /* ConnectView.swift */; };
 		4450F61F57487CBE210127AB /* ChatConversationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D64B3C91B9B86AC4EEAC0D4 /* ChatConversationView.swift */; };
-		44CE3C19324E6A3E1FB7A6EE /* RoomApiClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3052C87BE61ABA604B4D2DDA /* RoomApiClient.swift */; };
 		4637AA1E9961381EF2811961 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 35267EB0487D1ACA6F239F31 /* LaunchScreen.storyboard */; };
 		469A17C2A5BBE342927F8E91 /* CreateRetryPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56FC7009FB526157EBCAACB8 /* CreateRetryPolicy.swift */; };
+		50D0D48BB307F7882D6B5BDC /* LanWebBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FC6546ACCB2B714A5EFC458 /* LanWebBridge.swift */; };
 		528238084F2F40830DFA07E5 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 89BCA0EA24F8EC6C8D657C3A /* Localizable.strings */; };
 		55DEE0961DAD5F79F142FE48 /* DeviceInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10CB6472B87D055263E36E6 /* DeviceInfo.swift */; };
 		55F61A71243D2C330BB584A7 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1557D1DE2A6C5B9640A9C524 /* AppState.swift */; };
-		5DF727CF13E38A5E23715AE9 /* SignalingClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 884310A56DBA0014C3F832A8 /* SignalingClient.swift */; };
 		5E3DF3BCE1BF698059B0E081 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 402A97AD26C23233607BBCC5 /* Assets.xcassets */; };
+		6A2FFD938169D4B3049859EB /* LanAddresses.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD74DA6BC95A792103AB741C /* LanAddresses.swift */; };
 		6CE939B48BDAD031EB21B9DC /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = AB05BA376FC28859C500D7A8 /* Localizable.strings */; };
 		6E8CF9FC34BA88A7E70C19E7 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 4D89FEDFF505F0D090D708F2 /* Localizable.strings */; };
 		7183D01724144D6D99583F44 /* public-content.json in Resources */ = {isa = PBXBuildFile; fileRef = 0010B4EAAFC03619D44E02E6 /* public-content.json */; };
@@ -35,22 +37,28 @@
 		7F193A29787F7EBAEE31CFA9 /* ChatBubbles.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5AD7885293144E227DA8B5D /* ChatBubbles.swift */; };
 		7F5A3F64AC026E96E63C9F5E /* AppViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADF258A2EBC78C280D20C4AD /* AppViewModel.swift */; };
 		8046449DDAF2579871CC63E7 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 6A75D99F1DA655FBBFF164DC /* Localizable.strings */; };
+		80577614626F892F5B965CE9 /* UnfairLock.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE9B96ADE9C21C292DC9CDCE /* UnfairLock.swift */; };
 		8EE2CA40B17664142CCFE244 /* ChatModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D2E43171785D1AE69B64FE6 /* ChatModel.swift */; };
 		8F81CB5F258B3EDE6E0E94B2 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 38C90C7A860703A12AF271D6 /* Localizable.strings */; };
+		97F8962CB2935EC0DAC24DA6 /* LanConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37B7B13B67907DA628C3D0AC /* LanConnection.swift */; };
+		9B6C99E0DB34DC8D9030D831 /* LanDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3300BF0828C851202AED18A /* LanDiscovery.swift */; };
 		9C0F915BD56252074C28EE30 /* QrScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE23CCC980CA2C49E500586D /* QrScanner.swift */; };
 		A0F3DD8F53934FE55916A91C /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0791E26D831CC16F43576E7 /* Theme.swift */; };
 		A1C63DD9C20A8798925DE93E /* ScannerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D7029E11B09106BC1EFAC6 /* ScannerSheet.swift */; };
 		A26AF73B90C6855CF42999F8 /* SignalingModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3081C35A1B371F738A5D6BEF /* SignalingModels.swift */; };
+		A8CC329A18D3C512CD221F7D /* LanBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70F5ED70CB314933996872DB /* LanBridge.swift */; };
 		A99F319201E34EADE66893E7 /* PublicContentRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CA33F7F7C2F38394178DE86 /* PublicContentRepository.swift */; };
 		AF9751EDE498A1ADB07A3035 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 8576334CB6A43D1A0D94DE75 /* Localizable.strings */; };
 		BD2C1C44AD493541F5DD941B /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = E917F088AE448058F01479C8 /* WebRTC */; };
 		BD357D61E1F4F2606B442419 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8709DC78177795AC5709497 /* Components.swift */; };
 		BEF407FC7E7D081522218A17 /* TransferProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E8D99A8C04849B2CB1EA3B8 /* TransferProtocol.swift */; };
 		C1CB47C3B8399CA4141CC12B /* LocalNetworkAuthorization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 898A16D2779664097337AF02 /* LocalNetworkAuthorization.swift */; };
+		C291EBE0C18B5699E2215411 /* LanPairing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5272185AF0903D9C418970FD /* LanPairing.swift */; };
 		C4078ABAA9A0F3DBBFF68196 /* RoomModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 296D2AE511533CD92079D305 /* RoomModels.swift */; };
 		C635EA9ABD2A3DD0DF7C0BDB /* WebRTCPayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D042C808ED6EE873D1B69A /* WebRTCPayloads.swift */; };
 		CA80818C24718BF6A07A5D02 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = BEB1E6F5E41EE9D875FA9DAA /* Localizable.strings */; };
 		DAF5CC98055E03D0A08AFBD7 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = D3B2BB66F919C8E662690E60 /* Localizable.strings */; };
+		DE567C9A45B5DFABA77B85B8 /* LanRoomSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEE273001D7C821DF30F2AA9 /* LanRoomSession.swift */; };
 		DECBF62EB49CE87DC7DAF227 /* AdaptiveLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = B090BDCDF394CBCB5134BA19 /* AdaptiveLayout.swift */; };
 		E0A9FF7EECB89A7899AE4FC9 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A196EFC319698CF8D3004B0F /* SplashView.swift */; };
 		E3D6B53BD1AD2BAD2376AF54 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 958DEC58563B59CCC550FC66 /* Localizable.strings */; };
@@ -69,16 +77,18 @@
 		1557D1DE2A6C5B9640A9C524 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		296D2AE511533CD92079D305 /* RoomModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomModels.swift; sourceTree = "<group>"; };
 		2D03995217EE5E2E73897127 /* WebRTCPeerRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCPeerRuntime.swift; sourceTree = "<group>"; };
-		3052C87BE61ABA604B4D2DDA /* RoomApiClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomApiClient.swift; sourceTree = "<group>"; };
 		3081C35A1B371F738A5D6BEF /* SignalingModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignalingModels.swift; sourceTree = "<group>"; };
 		32077DDEC489FCBD211DE580 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = ar.lproj/Localizable.strings; sourceTree = "<group>"; };
 		3525DB2C768A31FE4F89C2E4 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = "zh-CN.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		35267EB0487D1ACA6F239F31 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		37B7B13B67907DA628C3D0AC /* LanConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanConnection.swift; sourceTree = "<group>"; };
 		38C90C7A860703A12AF271D6 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = fr.lproj/Localizable.strings; sourceTree = "<group>"; };
 		3E8D99A8C04849B2CB1EA3B8 /* TransferProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferProtocol.swift; sourceTree = "<group>"; };
+		3FC6546ACCB2B714A5EFC458 /* LanWebBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanWebBridge.swift; sourceTree = "<group>"; };
 		402A97AD26C23233607BBCC5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		4D89FEDFF505F0D090D708F2 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = th.lproj/Localizable.strings; sourceTree = "<group>"; };
 		525813185D62929FD3E37B25 /* FilePickers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilePickers.swift; sourceTree = "<group>"; };
+		5272185AF0903D9C418970FD /* LanPairing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanPairing.swift; sourceTree = "<group>"; };
 		56FC7009FB526157EBCAACB8 /* CreateRetryPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateRetryPolicy.swift; sourceTree = "<group>"; };
 		57D042C808ED6EE873D1B69A /* WebRTCPayloads.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCPayloads.swift; sourceTree = "<group>"; };
 		5BA95405B0348BE9701042C2 /* LanShare.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LanShare.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -87,21 +97,25 @@
 		6A75D99F1DA655FBBFF164DC /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = "pt-BR.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		6CA33F7F7C2F38394178DE86 /* PublicContentRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicContentRepository.swift; sourceTree = "<group>"; };
 		6D64B3C91B9B86AC4EEAC0D4 /* ChatConversationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatConversationView.swift; sourceTree = "<group>"; };
+		70F5ED70CB314933996872DB /* LanBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanBridge.swift; sourceTree = "<group>"; };
 		7AB3035157F17BA3355858B0 /* LanShareApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanShareApp.swift; sourceTree = "<group>"; };
 		7C8959D8696EC0740057F158 /* FolderPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderPicker.swift; sourceTree = "<group>"; };
 		8576334CB6A43D1A0D94DE75 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = "zh-TW.lproj/Localizable.strings"; sourceTree = "<group>"; };
-		884310A56DBA0014C3F832A8 /* SignalingClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignalingClient.swift; sourceTree = "<group>"; };
 		898A16D2779664097337AF02 /* LocalNetworkAuthorization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNetworkAuthorization.swift; sourceTree = "<group>"; };
 		89BCA0EA24F8EC6C8D657C3A /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = id.lproj/Localizable.strings; sourceTree = "<group>"; };
+		8B5497F828C122521CE4B5AB /* LanProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanProtocol.swift; sourceTree = "<group>"; };
 		8D2E43171785D1AE69B64FE6 /* ChatModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatModel.swift; sourceTree = "<group>"; };
 		958DEC58563B59CCC550FC66 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
 		A196EFC319698CF8D3004B0F /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
+		A3300BF0828C851202AED18A /* LanDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanDiscovery.swift; sourceTree = "<group>"; };
 		AB05BA376FC28859C500D7A8 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = es.lproj/Localizable.strings; sourceTree = "<group>"; };
 		ADF258A2EBC78C280D20C4AD /* AppViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppViewModel.swift; sourceTree = "<group>"; };
+		AEE273001D7C821DF30F2AA9 /* LanRoomSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanRoomSession.swift; sourceTree = "<group>"; };
 		AF7A422A4A57DD41B38AFEF0 /* ChatDetailsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatDetailsSheet.swift; sourceTree = "<group>"; };
 		B090BDCDF394CBCB5134BA19 /* AdaptiveLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveLayout.swift; sourceTree = "<group>"; };
 		B10CB6472B87D055263E36E6 /* DeviceInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceInfo.swift; sourceTree = "<group>"; };
 		B15A98B588200AA692D6A73B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		B349007CF2AC5C5BF1829F69 /* RoomService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomService.swift; sourceTree = "<group>"; };
 		B5AD7885293144E227DA8B5D /* ChatBubbles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubbles.swift; sourceTree = "<group>"; };
 		B6E478CD027529502421F5E0 /* ChatComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatComposer.swift; sourceTree = "<group>"; };
 		B8709DC78177795AC5709497 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
@@ -112,6 +126,8 @@
 		D2E3946F08A9C1E10C8C1ABA /* TransferSender.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferSender.swift; sourceTree = "<group>"; };
 		D3B2BB66F919C8E662690E60 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = ko.lproj/Localizable.strings; sourceTree = "<group>"; };
 		DAFE41F83A99B006E646257E /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = ja.lproj/Localizable.strings; sourceTree = "<group>"; };
+		DD74DA6BC95A792103AB741C /* LanAddresses.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanAddresses.swift; sourceTree = "<group>"; };
+		DE9B96ADE9C21C292DC9CDCE /* UnfairLock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnfairLock.swift; sourceTree = "<group>"; };
 		E0791E26D831CC16F43576E7 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		E9AA8900E13583384C468B03 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = hi.lproj/Localizable.strings; sourceTree = "<group>"; };
 		EE9ED8478FA397851BFAD8BC /* TransferSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferSession.swift; sourceTree = "<group>"; };
@@ -155,6 +171,22 @@
 				EE9ED8478FA397851BFAD8BC /* TransferSession.swift */,
 			);
 			path = Transfer;
+			sourceTree = "<group>";
+		};
+		3C1D77AD5BEFC34E17EC183F /* LAN */ = {
+			isa = PBXGroup;
+			children = (
+				DD74DA6BC95A792103AB741C /* LanAddresses.swift */,
+				70F5ED70CB314933996872DB /* LanBridge.swift */,
+				37B7B13B67907DA628C3D0AC /* LanConnection.swift */,
+				A3300BF0828C851202AED18A /* LanDiscovery.swift */,
+				5272185AF0903D9C418970FD /* LanPairing.swift */,
+				8B5497F828C122521CE4B5AB /* LanProtocol.swift */,
+				AEE273001D7C821DF30F2AA9 /* LanRoomSession.swift */,
+				3FC6546ACCB2B714A5EFC458 /* LanWebBridge.swift */,
+				DE9B96ADE9C21C292DC9CDCE /* UnfairLock.swift */,
+			);
+			path = LAN;
 			sourceTree = "<group>";
 		};
 		5BFC7065ED1D025E90B4F624 = {
@@ -206,7 +238,6 @@
 		865276CFB0C40A6FC3C960BB /* Signaling */ = {
 			isa = PBXGroup;
 			children = (
-				884310A56DBA0014C3F832A8 /* SignalingClient.swift */,
 				3081C35A1B371F738A5D6BEF /* SignalingModels.swift */,
 			);
 			path = Signaling;
@@ -227,9 +258,9 @@
 			isa = PBXGroup;
 			children = (
 				56FC7009FB526157EBCAACB8 /* CreateRetryPolicy.swift */,
-				3052C87BE61ABA604B4D2DDA /* RoomApiClient.swift */,
 				113586501D33045F4763D9E4 /* RoomKey.swift */,
 				296D2AE511533CD92079D305 /* RoomModels.swift */,
+				B349007CF2AC5C5BF1829F69 /* RoomService.swift */,
 			);
 			path = Room;
 			sourceTree = "<group>";
@@ -259,6 +290,7 @@
 				35267EB0487D1ACA6F239F31 /* LaunchScreen.storyboard */,
 				945D796FF4E71C076334525C /* App */,
 				5E3D761C4D07AEF9D7E517B5 /* Content */,
+				3C1D77AD5BEFC34E17EC183F /* LAN */,
 				18A1E3574BF5C70B8010C7D9 /* Platform */,
 				7ABE3A2DE2268CCEEC8167AD /* Resources */,
 				AF26DD56FF4BBB35F1812A2D /* Room */,
@@ -289,6 +321,7 @@
 				3A35F169F7BE17BF520008FB /* Sources */,
 				B5C98FA9B3D70337C6B5520B /* Resources */,
 				4F68C24F3698C44022C9C214 /* Frameworks */,
+				A57E3E1486E9B8A8CB443FEA /* Embed Web UI */,
 			);
 			buildRules = (
 			);
@@ -374,6 +407,28 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		A57E3E1486E9B8A8CB443FEA /* Embed Web UI */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Embed Web UI";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "set -euo pipefail\nSRC=\"${SRCROOT}/../web/public-ui/dist\"\nDEST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/web\"\nif [ ! -f \"$SRC/index.html\" ]; then\n  echo \"error: web/public-ui/dist/index.html is missing. Run: cd web/public-ui && npm install && npm run build\" >&2\n  exit 1\nfi\nrm -rf \"$DEST\"\nmkdir -p \"$DEST\"\ncp -R \"$SRC\"/. \"$DEST\"/\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		3A35F169F7BE17BF520008FB /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -394,25 +449,33 @@
 				55DEE0961DAD5F79F142FE48 /* DeviceInfo.swift in Sources */,
 				1AC69E5190B70E8AA92661A4 /* FilePickers.swift in Sources */,
 				E460A0D51235255F690B8D7E /* FolderPicker.swift in Sources */,
+				6A2FFD938169D4B3049859EB /* LanAddresses.swift in Sources */,
+				A8CC329A18D3C512CD221F7D /* LanBridge.swift in Sources */,
+				97F8962CB2935EC0DAC24DA6 /* LanConnection.swift in Sources */,
+				9B6C99E0DB34DC8D9030D831 /* LanDiscovery.swift in Sources */,
+				C291EBE0C18B5699E2215411 /* LanPairing.swift in Sources */,
+				1A23AE5786F2C87EB33ABAD8 /* LanProtocol.swift in Sources */,
+				DE567C9A45B5DFABA77B85B8 /* LanRoomSession.swift in Sources */,
 				EAE7FA450B3D0F7583D7AE9F /* LanShareApp.swift in Sources */,
+				50D0D48BB307F7882D6B5BDC /* LanWebBridge.swift in Sources */,
 				C1CB47C3B8399CA4141CC12B /* LocalNetworkAuthorization.swift in Sources */,
 				FB2C6A689B2A60EE4AAAC2AD /* PairingCodes.swift in Sources */,
 				208B984947A6D0EC3234B8D9 /* PairingQr.swift in Sources */,
 				E5C7DA0CEB87FE6708658C39 /* PublicContentModels.swift in Sources */,
 				A99F319201E34EADE66893E7 /* PublicContentRepository.swift in Sources */,
 				9C0F915BD56252074C28EE30 /* QrScanner.swift in Sources */,
-				44CE3C19324E6A3E1FB7A6EE /* RoomApiClient.swift in Sources */,
 				0E4BDD89CEB00FCFF58FB5A2 /* RoomKey.swift in Sources */,
 				C4078ABAA9A0F3DBBFF68196 /* RoomModels.swift in Sources */,
+				0759723595FEB80E9883DBF7 /* RoomService.swift in Sources */,
 				A1C63DD9C20A8798925DE93E /* ScannerSheet.swift in Sources */,
 				2512C7AAB4AE061E7F07AE09 /* SettingsView.swift in Sources */,
-				5DF727CF13E38A5E23715AE9 /* SignalingClient.swift in Sources */,
 				A26AF73B90C6855CF42999F8 /* SignalingModels.swift in Sources */,
 				E0A9FF7EECB89A7899AE4FC9 /* SplashView.swift in Sources */,
 				A0F3DD8F53934FE55916A91C /* Theme.swift in Sources */,
 				BEF407FC7E7D081522218A17 /* TransferProtocol.swift in Sources */,
 				72C3DF0479CC3201F97C805D /* TransferSender.swift in Sources */,
 				13BF7098E31ACBA85E68ADF1 /* TransferSession.swift in Sources */,
+				80577614626F892F5B965CE9 /* UnfairLock.swift in Sources */,
 				C635EA9ABD2A3DD0DF7C0BDB /* WebRTCPayloads.swift in Sources */,
 				0E7B4EBF9A517C2F2F1CE021 /* WebRTCPeerRuntime.swift in Sources */,
 			);

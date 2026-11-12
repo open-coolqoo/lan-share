@@ -164,11 +164,13 @@ struct ScannerSheet: View {
     /// stops the scan. Anything else shows the invalid-code hint and leaves the
     /// camera live for another attempt.
     private func consume(_ payload: String) -> Bool {
-        guard let code = PairingCodes.pairingCode(fromScanResult: payload) else {
+        guard PairingCodes.pairingCode(fromScanResult: payload) != nil else {
             showInvalidHint()
             return false
         }
-        onScanned(code)
+        // Preserve the whole payload: the unified local QR also carries the
+        // host's `addr` entries, which avoid relying on mDNS.
+        onScanned(payload)
         dismiss()
         return true
     }

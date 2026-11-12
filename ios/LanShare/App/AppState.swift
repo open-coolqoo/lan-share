@@ -51,7 +51,6 @@ public enum PeerCodeValidation: Equatable, Sendable {
 }
 
 public struct AppState: Sendable {
-    public var origin: String = RoomApiClient.resolvedDefaultOrigin
     public var locale: String = "en"
     public var darkTheme: Bool = false
     public var createdCode: String?
@@ -66,6 +65,12 @@ public struct AppState: Sendable {
     public var codeCopied: Bool = false
     public var joiningRoom: Bool = false
     public var roomError: String = ""
+    /// iOS local-network permission was answered with "Don't Allow".
+    public var localNetworkRefused: Bool = false
+    /// Payload shown in the host QR: a LAN HTTP URL when the browser bridge is up.
+    public var lanQrPayload: String = ""
+    /// Browser URL for a desktop on the same Wi-Fi, empty when unavailable.
+    public var lanBrowserUrl: String = ""
     /// Why the local code could not be fetched. Kept apart from `roomError`,
     /// which also carries peer-code and transfer errors: a create failure belongs
     /// next to the local code, with a retry, not beside the peer-code field where
@@ -137,7 +142,7 @@ public struct AppState: Sendable {
     }
 
     public var canJoinPeerCode: Bool {
-        peerCode.count == 8 && peerCodeValidation == .ok && !joiningRoom && joinedRoom == nil
+        peerCode.count == 8 && peerCodeValidation == .ok && !joiningRoom
     }
 
     /// Actions are locked while connecting, mirroring `connectionActionsLocked`.

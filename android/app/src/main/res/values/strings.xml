@@ -183,4 +183,11 @@
     <string name="chat_pending_files">%1$d files waiting to send</string>
     <string name="chat_pending_send_all">Send all</string>
     <string name="chat_attach_folder">Folder</string>
+    <string name="browser_url">Browser address</string>
+    <string name="browser_url_hint">Open this address in a browser on the same Wi-Fi.</string>
+    <string name="copy_browser_url">Copy address</string>
+    <string name="local_network_permission_title">Local network access</string>
+    <string name="grant_local_network_permission">Allow</string>
+    <string name="local_network_permission_message">Lan-Share needs local network access to find the other device, serve the browser page, and transfer files. Allow it in the system prompt, or open Settings if you already declined.</string>
+    <string name="local_network_permission_required">Local network access is required.</string>
 </resources>

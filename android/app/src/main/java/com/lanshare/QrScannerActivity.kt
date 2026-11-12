@@ -242,7 +242,9 @@ private fun QrScannerScreen(
                     onPreviewActiveChanged = { previewActive = it },
                     onQrCode = { candidate ->
                         val rawValue = candidate.rawValue
-                        val pairingCode = pairingCodeFromQrUrl(rawValue)
+                        // Keep the whole payload: the local QR carries the
+                        // host addresses that avoid an mDNS lookup.
+                        val pairingCode = pairingCodeFromScanResult(rawValue)
                         if (pairingCode == null) {
                             lockedPoint = candidate.overlayPoint ?: QrOverlayPoint(0.5f, 0.5f)
                             invalidQrLockToken += 1
@@ -250,7 +252,7 @@ private fun QrScannerScreen(
                             QrScanHandling.Pause
                         } else {
                             lockedPoint = candidate.overlayPoint ?: QrOverlayPoint(0.5f, 0.5f)
-                            pendingPairingCode = pairingCode
+                            pendingPairingCode = rawValue
                             QrScanHandling.Complete
                         }
                     },

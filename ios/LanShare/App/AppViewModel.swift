@@ -15,7 +15,9 @@ public final class AppViewModel {
     let contentRepository: PublicContentRepository?
     private let defaults: UserDefaults
 
-    private var signaling: SignalingClient?
+    private var signaling: (any SignalingLink)?
+    private var lanSession: LanRoomSession?
+    private var webBridge: LanWebBridge?
     private var peer: PeerRuntime?
     private var transfer: TransferSession?
     private var heartbeatTask: Task<Void, Never>?
@@ -31,7 +33,7 @@ public final class AppViewModel {
 
     private static let directFailureTimeoutMs: Int64 = 30_000
     private static let heartbeatIntervalMs: UInt64 = 25_000
-    private static let reconnectWindowMs: Int64 = 5 * 60_000
+    private static let reconnectWindowMs: Int64 = 10_000
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -75,21 +77,25 @@ public final class AppViewModel {
     // MARK: - Room lifecycle
 
     public func createRoom() {
+        if state.localNetworkRefused {
+            state.joiningRoom = false
+            state.codeError = "Local network access is required."
+            return
+        }
         state.joiningRoom = true
         state.roomError = ""
         // `codeError` is deliberately left alone here: it clears in
         // `handleCreatedRoom`. Clearing it at the start of every attempt would
         // blink the banner off and back on once a second while retrying.
         lastCreateAttemptMs = currentMilliseconds()
-        let origin = state.origin
         let deviceId = deviceId
         let deviceLabel = deviceLabel
         Task { [weak self] in
             guard let self else { return }
             do {
-                let client = RoomApiClient(origin: origin)
-                let created = try await client.create(deviceId: deviceId, deviceLabel: deviceLabel)
-                self.handleCreatedRoom(created, origin: origin)
+                self.stopWebBridge()
+                let created = try await self.service().create(deviceId: deviceId, deviceLabel: deviceLabel)
+                self.handleCreatedRoom(created)
             } catch let error as RoomApiError {
                 self.state.joiningRoom = false
                 self.state.codeError = error.message
@@ -101,6 +107,65 @@ public final class AppViewModel {
                 self.log("room: create failed \((error as NSError).code)")
                 self.scheduleCreateRetry()
             }
+        }
+    }
+
+    private func service() -> any RoomService {
+        if let lanSession { return lanSession }
+        let session = LanRoomSession(
+            deviceId: deviceId,
+            deviceLabel: deviceLabel,
+            log: { [weak self] message in
+                Task { @MainActor [weak self] in
+                    self?.log(message)
+                }
+            },
+        )
+        lanSession = session
+        return session
+    }
+
+    private func startWebBridge(code: String) {
+        let session = service()
+        guard let lan = session as? LanRoomSession else { return }
+        let bridge = LanWebBridge(session: lan, log: { [weak self] message in
+            Task { @MainActor [weak self] in
+                self?.log(message)
+            }
+        })
+        guard let port = bridge.start() else {
+            state.lanBrowserUrl = ""
+            state.lanQrPayload = LanPairing.buildQRPayload(
+                code: code,
+                addresses: lan.localAddresses(),
+            )
+            return
+        }
+        let address = bridge.browserAddress(port: port)
+        webBridge?.stop()
+        webBridge = bridge
+        state.lanBrowserUrl = address.map { "http://\($0.authority)/?pair=\(code)" } ?? ""
+        state.lanQrPayload = LanPairing.buildQRPayload(
+            code: code,
+            addresses: lan.localAddresses(),
+            webOrigin: address?.authority,
+        )
+    }
+
+    private func stopWebBridge() {
+        webBridge?.stop()
+        webBridge = nil
+        state.lanBrowserUrl = ""
+        state.lanQrPayload = ""
+    }
+
+    /// Fed by `LocalNetworkAuthorization`; a refusal disables local pairing
+    /// until the user grants access in Settings.
+    func updateLocalNetworkStatus(_ status: LocalNetworkProbe.Outcome) {
+        if status == .refused {
+            state.localNetworkRefused = true
+        } else if status == .granted {
+            state.localNetworkRefused = false
         }
     }
 
@@ -155,6 +220,22 @@ public final class AppViewModel {
     }
 
     public func joinRoom(code: String) {
+        joinRoom(code: code, lanAddresses: [])
+    }
+
+    public func joinScannedCode(_ raw: String?) {
+        if let payload = LanPairing.parseQRPayload(raw) {
+            joinRoom(code: payload.code, lanAddresses: payload.addresses)
+            return
+        }
+        guard let code = PairingCodes.pairingCode(fromScanResult: raw) else {
+            state.roomError = "No pairing code found in the scanned QR."
+            return
+        }
+        joinRoom(code: code)
+    }
+
+    private func joinRoom(code: String, lanAddresses: [LanAddress]) {
         let normalized = PairingCodes.normalizeCode(code)
         guard PairingCodes.isUsableCode(normalized) else {
             state.roomError = "Enter a valid 8-digit code."
@@ -162,23 +243,27 @@ public final class AppViewModel {
         }
         state.joiningRoom = true
         state.roomError = ""
-        let origin = state.origin
         let deviceId = deviceId
         let deviceLabel = deviceLabel
-        let roomKey = deriveRoomKey(normalized)
+        let target = LanJoinTarget(
+            code: normalized,
+            roomKey: deriveRoomKey(normalized),
+            addresses: lanAddresses,
+        )
         Task { [weak self] in
             guard let self else { return }
             do {
-                let client = RoomApiClient(origin: origin)
-                let joined = try await client.join(roomKey: roomKey, deviceId: deviceId, deviceLabel: deviceLabel)
+                self.stopWebBridge()
+                let joined = try await self.service().join(
+                    target: target,
+                    deviceId: deviceId,
+                    deviceLabel: deviceLabel,
+                )
                 self.state.connectedPeerCode = normalized
-                self.handleJoinedRoom(joined, origin: origin)
+                self.handleJoinedRoom(joined)
             } catch let error as RoomApiError {
                 self.state.joiningRoom = false
                 self.state.roomError = error.message
-                if error.code == "expired_code" || error.code == "invalid_request" {
-                    self.state.invalidatedCodes.insert(normalized)
-                }
                 self.log("room: join failed \(error.code)")
             } catch {
                 self.state.joiningRoom = false
@@ -188,37 +273,28 @@ public final class AppViewModel {
         }
     }
 
-    public func joinScannedCode(_ raw: String?) {
-        guard let code = PairingCodes.pairingCode(fromScanResult: raw) else {
-            state.roomError = "No pairing code found in the scanned QR."
-            return
-        }
-        joinRoom(code: code)
-    }
-
-    private func handleCreatedRoom(_ created: CreatedRoom, origin: String) {
+    private func handleCreatedRoom(_ created: CreatedRoom) {
         cancelCreateRetry()
         state.joiningRoom = false
         state.roomError = ""
         state.codeError = ""
-        state.origin = origin
         state.createdCode = created.code
         state.connectedPeerCode = nil
         state.joinedRoom = created.joined()
         state.pairingExpiresAtMs = iso8601Milliseconds(created.pairingExpiresAt)
         state.pairingCountdownPausedAtMs = nil
         state.nowMs = currentMilliseconds()
+        startWebBridge(code: created.code)
         resetPeerConnection(clearTransfers: true)
         connectSignaling()
         startPairingCodeAutoRefresh()
         log("room: created \(created.code)")
     }
 
-    private func handleJoinedRoom(_ joined: JoinedRoom, origin: String) {
+    private func handleJoinedRoom(_ joined: JoinedRoom) {
         cancelCreateRetry()
         state.joiningRoom = false
         state.codeError = ""
-        state.origin = origin
         state.joinedRoom = joined
         state.pairingExpiresAtMs = iso8601Milliseconds(joined.pairingExpiresAt)
         state.pairingCountdownPausedAtMs = nil
@@ -237,6 +313,12 @@ public final class AppViewModel {
 
     public func clearCodeCopied() {
         state.codeCopied = false
+    }
+
+    public func copyBrowserUrl() {
+        guard !state.lanBrowserUrl.isEmpty else { return }
+        UIPasteboard.general.string = state.lanBrowserUrl
+        log("room: browser URL copied")
     }
 
     public func setRoomCode(_ value: String) {
@@ -266,32 +348,49 @@ public final class AppViewModel {
         state.peerDeviceLabel = ""
         stopHeartbeat()
         if let room {
-            let origin = state.origin
+            // Close the old room before creating the next one. `service()` is
+            // the same LanRoomSession object, so a close racing with the new
+            // create would tear down the fresh room.
             Task { [weak self] in
-                let client = RoomApiClient(origin: origin)
-                _ = try? await client.close(room)
-                self?.log("room: closed")
+                guard let self else { return }
+                try? await self.service().close(room)
+                self.log("room: closed")
+                self.createRoom()
             }
+        } else {
+            createRoom()
         }
-        createRoom()
     }
 
     // MARK: - Signaling
 
     private func connectSignaling() {
         guard let room = state.joinedRoom else { return }
-        closeSignaling(clearReconnect: true)
-        let client = SignalingClient(origin: state.origin, onEvent: { [weak self] envelope in
+        let link = service().signalingLink(log: { [weak self] message in
             Task { @MainActor [weak self] in
-                self?.handleSignal(envelope)
-            }
-        }, onDisconnect: { [weak self] reason in
-            Task { @MainActor [weak self] in
-                self?.handleSignalingDisconnect(reason)
+                self?.log(message)
             }
         })
-        signaling = client
-        client.connect(auth: .auth(roomId: room.roomId, deviceId: room.deviceId, sessionToken: room.sessionToken))
+        // LanRoomSession is both the room service and the signaling link. On a
+        // guest join the socket is already attached, so closing the previous
+        // link here would tear down the connection that just succeeded.
+        if signaling !== link {
+            closeSignaling(clearReconnect: false)
+        }
+        link.connect(
+            room: room,
+            onEvent: { [weak self] envelope in
+                Task { @MainActor [weak self] in
+                    self?.handleSignal(envelope)
+                }
+            },
+            onDisconnect: { [weak self] reason in
+                Task { @MainActor [weak self] in
+                    self?.handleSignalingDisconnect(reason)
+                }
+            },
+        )
+        signaling = link
         log("signaling: connecting")
     }
 
@@ -892,6 +991,7 @@ public final class AppViewModel {
     /// gating the network path, so a missing code is fetched right away instead
     /// of waiting out the retry delay.
     public func handleScenePhaseActive() {
+        restartDroppedSessionReconnect()
         markDeadChannelAfterForeground()
         switch CreateRetryPolicy.foregroundAction(
             hasCode: state.createdCode != nil,
@@ -911,6 +1011,18 @@ public final class AppViewModel {
             // launch with no code and nothing scheduled to fetch one.
             scheduleCreateRetry(after: seconds)
         }
+    }
+
+    /// Coming back to a room whose link died while the app was away gets a fresh
+    /// short window: retry for a few seconds, then drop the session rather than
+    /// leave the conversation stuck behind a disabled composer.
+    private func restartDroppedSessionReconnect() {
+        guard state.joinedRoom != nil, !state.signalingReady, !state.channelReady else { return }
+        reconnectTask?.cancel()
+        reconnectTask = nil
+        reconnectDeadlineMs = 0
+        log("signaling: retry window restarted after foreground")
+        scheduleSignalingReconnect(reason: "foreground")
     }
 
     /// Local network access was granted. The prompt gates the app's whole Wi-Fi
@@ -992,17 +1104,11 @@ public final class AppViewModel {
     private func heartbeatLoop() async {
         while !Task.isCancelled, state.joinedRoom != nil {
             if let room = state.joinedRoom {
-                let origin = state.origin
                 do {
-                    let response = try await RoomApiClient(origin: origin).heartbeat(room)
+                    let response = try await service().heartbeat(room)
                     if !response.ok {
                         log("heartbeat: not ok")
                     }
-                } catch let error as RoomApiError where error.code == "invalid_session" {
-                    log("heartbeat: invalid session")
-                    state.roomError = "The room session expired. Reconnect to continue."
-                    resetAfterRemoteRoomClosed()
-                    return
                 } catch {
                     log("heartbeat: failed")
                 }
@@ -1023,7 +1129,8 @@ public final class AppViewModel {
             state.nowMs = currentMilliseconds()
             guard state.joinedRoom != nil else { return }
             let countdown = state.pairingCountdownSeconds ?? 0
-            if countdown == 0, !state.channelReady, state.createdCode != nil {
+            if countdown == 0, !state.channelReady, state.peerDeviceLabel.isEmpty,
+               state.createdCode != nil, state.joinedRoom?.role != "peer" {
                 log("room: code expired, refreshing")
                 createRoom()
                 return
@@ -1099,6 +1206,9 @@ public final class AppViewModel {
     // MARK: - Helpers
 
     private func log(_ message: String) {
+        #if DEBUG
+        NSLog("LanShare: %@", message)
+        #endif
         state.logs.append(message)
         if state.logs.count > 200 {
             state.logs.removeFirst(state.logs.count - 200)

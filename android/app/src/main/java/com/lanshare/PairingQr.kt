@@ -13,22 +13,10 @@ import java.nio.charset.StandardCharsets
 
 private val PairingCodePattern = Regex("""^\d{8}$""")
 
-fun buildPairingUrl(origin: String, code: String, locale: String): String {
-    val separator = if (origin.contains("?")) "&" else "?"
-    return "${origin.trimEnd('/')}/$separator" + "pair=$code&lang=$locale"
-}
-
 fun pairingCodeFromScanResult(rawValue: String?): String? {
     val value = rawValue?.trim().orEmpty()
     if (PairingCodePattern.matches(value)) return value
     val query = scanResultQuery(value) ?: return null
-    return pairingCodeFromQuery(query)
-}
-
-fun pairingCodeFromQrUrl(rawValue: String?): String? {
-    val value = rawValue?.trim().orEmpty()
-    if ("://" !in value) return null
-    val query = runCatching { URI(value).rawQuery }.getOrNull() ?: return null
     return pairingCodeFromQuery(query)
 }
 
@@ -53,12 +41,14 @@ private fun scanResultQuery(value: String): String? {
 private fun String.decodeUrlComponent(): String =
     URLDecoder.decode(this, StandardCharsets.UTF_8.name())
 
-fun pairingQrImage(origin: String, code: String, locale: String, sizePx: Int = 176): ImageBitmap {
+/** Renders a local-pairing QR from the host payload, or null without one. */
+fun pairingQrImage(payload: String?, sizePx: Int = 176): ImageBitmap? {
+    val value = payload?.takeIf { it.isNotBlank() } ?: return null
     val hints = mapOf(
         EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.M,
         EncodeHintType.MARGIN to 1,
     )
-    val matrix = QRCodeWriter().encode(buildPairingUrl(origin, code, locale), BarcodeFormat.QR_CODE, sizePx, sizePx, hints)
+    val matrix = QRCodeWriter().encode(value, BarcodeFormat.QR_CODE, sizePx, sizePx, hints)
     val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
     for (x in 0 until sizePx) {
         for (y in 0 until sizePx) {

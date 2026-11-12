@@ -104,10 +104,24 @@ export async function sha256Hex(buffer: ArrayBuffer): Promise<string> {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
+/**
+ * `crypto.randomUUID` is secure-context only; the local browser bridge serves
+ * the page over plain HTTP on a LAN address, so fall back to a v4 UUID built
+ * from `getRandomValues`, which is available on insecure origins.
+ */
+export function randomUUID(): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') return globalThis.crypto.randomUUID()
+  const bytes = globalThis.crypto.getRandomValues(new Uint8Array(16))
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
 export function createTextMessage(text: string): TextMessage {
   return {
     protocolVersion: 1,
-    messageId: `msg_${crypto.randomUUID()}`,
+    messageId: `msg_${randomUUID()}`,
     type: 'text_message',
     text,
   }
@@ -116,7 +130,7 @@ export function createTextMessage(text: string): TextMessage {
 export function createRecallMessage(target: 'text' | 'file', targetId: string): MessageRecallMessage {
   return {
     protocolVersion: 1,
-    messageId: `msg_${crypto.randomUUID()}`,
+    messageId: `msg_${randomUUID()}`,
     type: 'message_recall',
     target,
     targetId,
@@ -124,10 +138,10 @@ export function createRecallMessage(target: 'text' | 'file', targetId: string): 
 }
 
 export function createFileOffer(file: File, chunkSize = 262_144): FileOffer {
-  const fileId = `file_${crypto.randomUUID()}`
+  const fileId = `file_${randomUUID()}`
   return {
     fileId,
-    transferId: `transfer_${crypto.randomUUID()}`,
+    transferId: `transfer_${randomUUID()}`,
     name: sanitizeFileName(file.name),
     size: file.size,
     mime: file.type || 'application/octet-stream',
@@ -148,7 +162,7 @@ export function createControlMessage<T extends TransferControlMessage['type']>(
 ): Extract<TransferControlMessage, { type: T }> {
   return {
     protocolVersion: 1,
-    messageId: `msg_${crypto.randomUUID()}`,
+    messageId: `msg_${randomUUID()}`,
     transferId: offer.transferId,
     fileId: offer.fileId,
     type,

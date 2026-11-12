@@ -1,4 +1,12 @@
 import java.util.Properties
+import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.TaskAction
 
 plugins {
     alias(libs.plugins.android.application)
@@ -82,32 +90,6 @@ android {
             .get()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        val defaultServerOrigin = providers.gradleProperty("defaultServerOrigin")
-            .orElse(providers.environmentVariable("DEFAULT_SERVER_ORIGIN"))
-            .getOrElse("https://lanshare.example")
-        val escapedServerOrigin = defaultServerOrigin
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-        buildConfigField("String", "DEFAULT_SERVER_ORIGIN", "\"$escapedServerOrigin\"")
-
-        // Private deployment only: the public repository ships placeholders, not
-        // the production room/signaling paths.
-        val privateRoomApiPrefix = providers.gradleProperty("privateRoomApiPrefix")
-            .orElse("/__private__/rooms")
-            .get()
-            .trimEnd('/')
-        val privateSignalingPath = providers.gradleProperty("privateSignalingPath")
-            .orElse("/__private__/signaling")
-            .get()
-        val escapedRoomApiPrefix = privateRoomApiPrefix.replace("\\", "\\\\").replace("\"", "\\\"")
-        val escapedSignalingPath = privateSignalingPath.replace("\\", "\\\\").replace("\"", "\\\"")
-        buildConfigField("String", "PRIVATE_ROOM_API_PREFIX", "\"$escapedRoomApiPrefix\"")
-        buildConfigField("String", "PRIVATE_SIGNALING_PATH", "\"$escapedSignalingPath\"")
-        val effectiveVersionName = providers.gradleProperty("appVersionName")
-            .orElse(defaultVersionName)
-            .map(::validatedVersionName)
-            .get()
-        buildConfigField("String", "APP_BUILD_ID", "\"android-$effectiveVersionName\"")
     }
 
     buildFeatures {
@@ -151,6 +133,45 @@ kotlin {
     jvmToolchain(21)
 }
 
+/**
+ * Packages the built web client as `assets/web/...` for the local browser
+ * bridge. `web/public-ui/dist` is generated (and gitignored), so fail with a
+ * clear instruction instead of shipping an APK whose bridge has no page.
+ */
+abstract class SyncWebUi : DefaultTask() {
+    @get:InputDirectory
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val source: DirectoryProperty
+
+    @get:OutputDirectory
+    abstract val output: DirectoryProperty
+
+    @TaskAction
+    fun sync() {
+        val sourceDir = source.get().asFile
+        if (!sourceDir.resolve("index.html").isFile) {
+            throw GradleException(
+                "web/public-ui/dist/index.html is missing. Run: cd web/public-ui && npm install && npm run build",
+            )
+        }
+        val destination = output.get().asFile.resolve("web")
+        destination.deleteRecursively()
+        destination.parentFile?.mkdirs()
+        sourceDir.copyRecursively(destination, overwrite = true)
+    }
+}
+
+androidComponents {
+    onVariants { variant ->
+        val taskName = "sync${variant.name.replaceFirstChar { it.uppercase() }}WebUi"
+        val syncTask = tasks.register<SyncWebUi>(taskName) {
+            source.set(rootProject.layout.projectDirectory.dir("../web/public-ui/dist"))
+            output.set(layout.buildDirectory.dir("generated/${variant.name}/webUiAssets"))
+        }
+        variant.sources.assets?.addGeneratedSourceDirectory(syncTask, SyncWebUi::output)
+    }
+}
+
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
@@ -165,7 +186,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.okhttp)
     implementation(libs.webrtc)
     implementation(libs.zxing.core)
     implementation(libs.google.mlkit.barcode.scanning)

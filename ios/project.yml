@@ -50,6 +50,21 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         SUPPORTS_MACCATALYST: NO
+    postBuildScripts:
+      - name: Embed Web UI
+        shell: /bin/bash
+        basedOnDependencyAnalysis: false
+        script: |
+          set -euo pipefail
+          SRC="${SRCROOT}/../web/public-ui/dist"
+          DEST="${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/web"
+          if [ ! -f "$SRC/index.html" ]; then
+            echo "error: web/public-ui/dist/index.html is missing. Run: cd web/public-ui && npm install && npm run build" >&2
+            exit 1
+          fi
+          rm -rf "$DEST"
+          mkdir -p "$DEST"
+          cp -R "$SRC"/. "$DEST"/
 schemes:
   LanShare:
     build:
